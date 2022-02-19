@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <Filter Include="Source Files">
@@ -10,16 +10,16 @@
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
     <Filter Include="Source Files\include">
-      <UniqueIdentifier>{4111cfcc-eacc-4f67-aa4b-5a246aa5a35d}</UniqueIdentifier>
+      <UniqueIdentifier>{8e4d79a1-288d-4f68-b75e-7a7ad2228fa8}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="source\Core.cpp">
+    <ClCompile Include="source\Math.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\include\Core\Core.hpp">
+    <ClInclude Include="..\..\include\Math\Math.hpp">
       <Filter>Source Files\include</Filter>
     </ClInclude>
   </ItemGroup>
