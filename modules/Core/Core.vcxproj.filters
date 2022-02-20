@@ -20,6 +20,9 @@
     <ClCompile Include="source\Math.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="source\TaskScheduler.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\include\Core\Core.hpp">
@@ -29,6 +32,9 @@
       <Filter>Source Files\include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\Core\Math.hpp">
+      <Filter>Source Files\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\Core\TaskScheduler.hpp">
       <Filter>Source Files\include</Filter>
     </ClInclude>
   </ItemGroup>
