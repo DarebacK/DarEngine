@@ -39,7 +39,7 @@ using uint64 = uint64_t; static_assert(sizeof(uint64) == 8);
 #endif
 #define logVariable(variable, format) logInfo(#variable " = " format, variable)
 
-#define arrayCount(arr) (sizeof(arr) / sizeof(arr[0]))
+#define arrayLength(arr) (sizeof(arr) / sizeof(arr[0]))
 
 #ifdef DAR_DEBUG
   #undef assert
