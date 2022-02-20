@@ -1,6 +1,6 @@
-#include "Core.hpp"
+#include "Core/Core.hpp"
 
-#include "Math/Math.hpp"
+#include "Core/Math.hpp"
 
 #ifdef DAR_DEBUG
 wchar_t _debugText[4096];
