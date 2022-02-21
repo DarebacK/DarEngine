@@ -37,5 +37,8 @@
     <ClInclude Include="..\..\include\Core\TaskScheduler.hpp">
       <Filter>Source Files\include</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\include\Core\Task.hpp">
+      <Filter>Source Files\include</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

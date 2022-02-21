@@ -2,10 +2,12 @@
 #include <stdio.h>
 #include <cstdint>
 
-using byte = unsigned char; static_assert(sizeof(byte) == 1);
+using byte = uint8_t; static_assert(sizeof(byte) == 1);
+using int8 = int8_t; static_assert(sizeof(int8) == 1);
 using int16 = int16_t; static_assert(sizeof(int16) == 2);
 using int32 = int32_t; static_assert(sizeof(int32) == 4);
 using int64 = int64_t; static_assert(sizeof(int64) == 8);
+using uint8 = uint8_t; static_assert(sizeof(byte) == 1);
 using uint16 = uint16_t; static_assert(sizeof(uint16) == 2);
 using uint32 = uint32_t; static_assert(sizeof(uint32) == 4);
 using uint64 = uint64_t; static_assert(sizeof(uint64) == 8);

@@ -19,6 +19,7 @@
     <ClInclude Include="..\..\include\Core\Core.hpp" />
     <ClInclude Include="..\..\include\Core\Input.hpp" />
     <ClInclude Include="..\..\include\Core\Math.hpp" />
+    <ClInclude Include="..\..\include\Core\Task.hpp" />
     <ClInclude Include="..\..\include\Core\TaskScheduler.hpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
