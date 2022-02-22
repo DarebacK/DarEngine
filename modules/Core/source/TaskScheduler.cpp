@@ -57,30 +57,46 @@ struct ParallelForTaskData
 {
   std::atomic<int64> currentValue;
   int64 endValue;
-  std::atomic<int> threadsRemainingCount;
   std::function<void(int64)> function;
+  std::atomic<int64> functionCallsDoneCount = 0;
+  std::atomic<int> threadsRemainingCount;
 };
 
 DEFINE_TASK_BEGIN(parallelForTask, ParallelForTaskData)
 {
   int64 currentValue = data.currentValue++;
+  int64 localFunctionCallsDoneCount = 0;
   while (currentValue < data.endValue)
   {
     data.function(currentValue);
     currentValue = data.currentValue++;
+    // We have to count this instead of using currentValue as some iteration might take longer than the rest.
+    localFunctionCallsDoneCount = ++data.functionCallsDoneCount;
+  }
+
+  const bool thisThreadFinishedLastIteration = localFunctionCallsDoneCount == data.endValue;
+  if (thisThreadFinishedLastIteration)
+  {
+    // TODO: Signal event
   }
 
   if (--data.threadsRemainingCount == 0)
   {
-    delete &data;
+    delete& data;
   }
 }
 DEFINE_TASK_END
 
 void TaskScheduler::parallelFor(int64 beginValue, int64 endValue, std::function<void(int64)> function)
 {
-  const int threadsRemaingCount = threadCount + 1; // include this thread.
-  ParallelForTaskData* taskData = new ParallelForTaskData{ beginValue, endValue, threadsRemaingCount, std::move(function) };
+  // TODO: Do 1 / threadCount part of iterations here without using the shared counters.
+
+  ParallelForTaskData* const taskData = new ParallelForTaskData{ beginValue, endValue, std::move(function), 0, threadCount + 1 };
 
   parallelForTask(taskData);
+
+  if(taskData->functionCallsDoneCount.load(std::memory_order_relaxed) < endValue - beginValue)
+  {
+    // TODO: Wait for event 
+  }
 }
