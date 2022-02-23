@@ -13,14 +13,13 @@
   <ItemGroup>
     <ClCompile Include="source\Core.cpp" />
     <ClCompile Include="source\Math.cpp" />
-    <ClCompile Include="source\TaskScheduler.cpp" />
+    <ClCompile Include="source\Task.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\include\Core\Core.hpp" />
     <ClInclude Include="..\..\include\Core\Input.hpp" />
     <ClInclude Include="..\..\include\Core\Math.hpp" />
     <ClInclude Include="..\..\include\Core\Task.hpp" />
-    <ClInclude Include="..\..\include\Core\TaskScheduler.hpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
