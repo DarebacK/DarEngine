@@ -45,14 +45,18 @@ private:
 
   void* parallelForFinishedEvent;
 
-  struct Thread
+
+  std::vector<void*> threads;
+  volatile bool threadsShouldStop = false;
+
+  struct ThreadContext
   {
-    void* handle;
-    void* stoppedEvent;
-    int threadIndex;
-    volatile bool shouldStop;
+    TaskScheduler* taskScheduler;
+    int64 threadIndex;
   };
-  std::vector<Thread> threads;
+  std::vector<ThreadContext> threadContexts;
+  
+  void* threadSemaphore = nullptr;
 
 private:
 

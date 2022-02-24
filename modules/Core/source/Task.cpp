@@ -1,3 +1,5 @@
+#define DAR_MODULE_NAME "Task"
+
 #include "Core/Task.hpp"
 
 #define WIN32_LEAN_AND_MEAN
@@ -11,38 +13,47 @@ TaskScheduler::TaskScheduler()
 
 TaskScheduler::~TaskScheduler()
 {
-  for (Thread& thread : threads)
+  threadsShouldStop = true;
+
+  if (threadSemaphore)
   {
-    thread.shouldStop = true;
+    while (ReleaseSemaphore(threadSemaphore, 1, NULL)); // wake up worker threads so they can exit.
   }
 
-  for (Thread& thread : threads)
+  for (int threadIndex = 0; threadIndex < threads.size(); ++threadIndex)
   {
-    if (!thread.handle || !thread.stoppedEvent)
+    void* thread = threads[threadIndex];
+    if (!thread)
     {
       continue;
     }
 
     constexpr DWORD waitTimeoutMs = 1000;
-    DWORD waitResult = WaitForSingleObject(thread.stoppedEvent, waitTimeoutMs);
+    DWORD waitResult = WaitForSingleObject(thread, waitTimeoutMs);
     switch (waitResult)
     {
     case WAIT_TIMEOUT:
-      logError("Thread %d index %d stop timeout %d ms.", GetThreadId(thread.handle), thread.threadIndex, waitTimeoutMs);
+      logError("Thread %d index %d stop timeout %d ms.", GetThreadId(thread), threadIndex, waitTimeoutMs);
       break;
 
     case WAIT_FAILED:
-      logError("Thread %d index %d stop failed.", GetThreadId(thread.handle), thread.threadIndex);
+      logError("Thread %d index %d stop failed.", GetThreadId(thread), threadIndex);
+      break;
+
+    default:
+      CloseHandle(thread);
       break;
     }
-
-    CloseHandle(thread.stoppedEvent);
-    CloseHandle(thread.handle);
   }
 
   if (parallelForFinishedEvent)
   {
     CloseHandle(parallelForFinishedEvent);
+  }
+
+  if (threadSemaphore)
+  {
+    CloseHandle(threadSemaphore);
   }
 }
 
@@ -50,19 +61,23 @@ void TaskScheduler::initialize(int inThreadCount, int threadAffinitiesOffset)
 {
   inThreadCount = min(inThreadCount, threadCountMax);
   threads.resize(inThreadCount);
+  threadContexts.resize(inThreadCount);
+
+  threadSemaphore = CreateSemaphore(NULL, 0, inThreadCount, NULL);
 
   for (uint64 threadIndex = 0; threadIndex < inThreadCount; ++threadIndex)
   {
-    HANDLE thread = CreateThread(NULL, 0, &workerThreadMain, &threads[threadIndex], CREATE_SUSPENDED, NULL);
+    HANDLE thread = CreateThread(NULL, 0, &workerThreadMain, &threadContexts[threadIndex], CREATE_SUSPENDED, NULL);
     if (thread == NULL)
     {
       threads[threadIndex] = {};
+      threadContexts[threadIndex] = {};
       logError("Failed to create worker thread %llu", threadIndex);
       continue;
     }
 
-    HANDLE threadStoppedEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
-    threads[threadIndex] = { thread, threadStoppedEvent, static_cast<int>(threadIndex), false };
+    threads[threadIndex] = thread;
+    threadContexts[threadIndex] = {this, static_cast<int64>(threadIndex)};
 
     DWORD_PTR threadAffinityMask = 1ull << (threadIndex + threadAffinitiesOffset);
     if (SetThreadAffinityMask(thread, threadAffinityMask) == 0)
@@ -87,6 +102,8 @@ void TaskScheduler::schedule(TaskFunction task, void* taskData)
     logWarning("Cannot write new task with index %lld as it's still being consumed.", nextTaskIndexToWrite);
   }
   queue.taskIndexToWrite.store(nextTaskIndexToWrite, std::memory_order_release);
+
+  ReleaseSemaphore(threadSemaphore, 1, NULL);
 }
 
 struct ParallelForTaskData
@@ -195,16 +212,17 @@ void TaskScheduler::parallelFor(int64 beginValue, int64 endValue, const std::fun
 
 DWORD TaskScheduler::workerThreadMain(LPVOID parameter)
 {
-  TaskScheduler::Thread* threadContext = static_cast<TaskScheduler::Thread*>(parameter);
+  TaskScheduler::ThreadContext* threadContext = static_cast<TaskScheduler::ThreadContext*>(parameter);
 
   logInfo("Hello worker thread %lu on %lu core", GetCurrentThreadId(), GetCurrentProcessorNumber());
 
-  while (!threadContext->shouldStop)
+  while (!threadContext->taskScheduler->threadsShouldStop)
   {
+    WaitForSingleObject(threadContext->taskScheduler->threadSemaphore, INFINITE);
 
+    // TODO: Do tasks
   }
 
-  SetEvent(threadContext->stoppedEvent);
   return 0;
 }
 
