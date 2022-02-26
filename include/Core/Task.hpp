@@ -41,7 +41,7 @@ private:
 
   static constexpr int threadCountMax = 64;
   static constexpr uint8 invalidTaskIndex = 255;
-  volatile uint8 threadCurrentTaskIndices[threadCountMax] = { invalidTaskIndex }; // fits into 1 cacheline.
+  volatile uint8 threadCurrentTaskIndices[threadCountMax]; // fits into 1 cacheline.
 
   void* parallelForFinishedEvent;
 
@@ -63,6 +63,7 @@ private:
   static unsigned long workerThreadMain(void* parameter);
 
   bool taskIsBeingConsumed(int64 taskIndex) const;
+  void processAllTasks(int64 threadIndex);
 };
 
 #define DEFINE_TASK_BEGIN(taskName, TaskDataType) \

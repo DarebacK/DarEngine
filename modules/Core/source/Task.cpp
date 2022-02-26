@@ -59,6 +59,11 @@ TaskScheduler::~TaskScheduler()
 
 void TaskScheduler::initialize(int inThreadCount, int threadAffinitiesOffset)
 {
+  for (int i = 0; i < arrayLength(threadCurrentTaskIndices); ++i)
+  {
+    threadCurrentTaskIndices[i] = invalidTaskIndex;
+  }
+
   inThreadCount = min(inThreadCount, threadCountMax);
   threads.resize(inThreadCount);
   threadContexts.resize(inThreadCount);
@@ -91,16 +96,26 @@ void TaskScheduler::initialize(int inThreadCount, int threadAffinitiesOffset)
 
 void TaskScheduler::schedule(TaskFunction task, void* taskData)
 {
-  queue.tasks[queue.taskIndexToWrite].function = task;
-  queue.tasks[queue.taskIndexToWrite].data = task;
-
+  const int64 taskIndexToWrite = queue.taskIndexToWrite.load(std::memory_order::memory_order_relaxed);
   // TODO: allow multiple producers?
-  const int64 nextTaskIndexToWrite = (queue.taskIndexToWrite.load(std::memory_order::memory_order_relaxed) + 1) % arrayLength(queue.tasks);
+  const int64 nextTaskIndexToWrite = (taskIndexToWrite + 1) % arrayLength(queue.tasks);
+
   int spinCount = 0;
-  while (taskIsBeingConsumed(nextTaskIndexToWrite) && spinCount++ < 100)
+  constexpr int maxSpinCount = 100;
+  while (nextTaskIndexToWrite == queue.taskIndexToRead.load(std::memory_order::memory_order_relaxed) && spinCount++ < maxSpinCount)
   {
-    logWarning("Cannot write new task with index %lld as it's still being consumed.", nextTaskIndexToWrite);
+    logWarning("Cannot write new task with index %lld as the queue is full.", taskIndexToWrite);
   }
+
+  spinCount = 0;
+  while (taskIsBeingConsumed(taskIndexToWrite) && spinCount++ < maxSpinCount)
+  {
+    logWarning("Cannot write new task with index %lld as it's still being consumed.", taskIndexToWrite);
+  }
+
+  queue.tasks[queue.taskIndexToWrite].function = task;
+  queue.tasks[queue.taskIndexToWrite].data = taskData;
+
   queue.taskIndexToWrite.store(nextTaskIndexToWrite, std::memory_order_release);
 
   ReleaseSemaphore(threadSemaphore, 1, NULL);
@@ -213,14 +228,19 @@ void TaskScheduler::parallelFor(int64 beginValue, int64 endValue, const std::fun
 DWORD TaskScheduler::workerThreadMain(LPVOID parameter)
 {
   TaskScheduler::ThreadContext* threadContext = static_cast<TaskScheduler::ThreadContext*>(parameter);
+  TaskScheduler& taskScheduler = *threadContext->taskScheduler;
+  const int64 threadIndex = threadContext->threadIndex;
 
-  logInfo("Hello worker thread %lu on %lu core", GetCurrentThreadId(), GetCurrentProcessorNumber());
-
-  while (!threadContext->taskScheduler->threadsShouldStop)
+  while (!taskScheduler.threadsShouldStop)
   {
-    WaitForSingleObject(threadContext->taskScheduler->threadSemaphore, INFINITE);
+    WaitForSingleObject(taskScheduler.threadSemaphore, INFINITE);
 
-    // TODO: Do tasks
+    if (taskScheduler.threadsShouldStop)
+    {
+      break;
+    }
+
+    taskScheduler.processAllTasks(threadIndex);
   }
 
   return 0;
@@ -237,4 +257,29 @@ bool TaskScheduler::taskIsBeingConsumed(int64 taskIndex) const
   }
 
   return false;
+}
+
+void TaskScheduler::processAllTasks(int64 threadIndex)
+{
+  while (true)
+  {
+    int64 taskIndexToRead = queue.taskIndexToRead.load(std::memory_order::memory_order_relaxed);
+    const int64 taskIndexToWrite = queue.taskIndexToWrite.load(std::memory_order::memory_order_relaxed);
+
+    if (taskIndexToRead == taskIndexToWrite)
+    {
+      return;
+    }
+
+    const int64 nextTaskIndexToRead = (taskIndexToRead + 1) % arrayLength(queue.tasks);
+    if (queue.taskIndexToRead.compare_exchange_strong(taskIndexToRead, nextTaskIndexToRead))
+    {
+      threadCurrentTaskIndices[threadIndex] = taskIndexToRead;
+
+      const Task task = queue.tasks[taskIndexToRead];
+      task.function(task.data);
+
+      threadCurrentTaskIndices[threadIndex] = invalidTaskIndex;
+    }
+  }
 }
