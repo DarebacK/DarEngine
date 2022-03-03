@@ -11,9 +11,15 @@ namespace D3D11
   {
   public:
 
-    ShaderRegistry();
+    ShaderRegistry() = default;
+    ShaderRegistry(const ShaderRegistry& other) = delete;
+    ShaderRegistry(ShaderRegistry&& other) = delete;
+    ~ShaderRegistry() = default;
 
-    void reload(LPCTSTR shaderDirectoryPath, TaskScheduler* taskScheduler);
+    // Recursively searches shaderDirectoryPath for shader files and loads them.
+    // Supports both object code and source code files.
+    // Previously loaded shaders are discarded.
+    void reload(LPCTSTR shaderDirectoryPath, TaskScheduler& taskScheduler);
 
     ID3D11VertexShader* findVertexShader(LPCTSTR name) const;
     ID3D11PixelShader* findPixelShader(LPCTSTR name) const;
@@ -21,13 +27,13 @@ namespace D3D11
   private:
     
     void reset();
-    void load(LPCTSTR shaderDirectoryPath, TaskScheduler* taskScheduler);
+    void load(LPCTSTR shaderDirectoryPath, TaskScheduler& taskScheduler);
 
     static constexpr int shaderCountMax = 50;
 
     // TODO: Create proper lookup data structure.
     LPCTSTR vertexShaderNames[shaderCountMax];
-    ID3D11VertexShader* vertexShaders[shaderCountMax];
+    ID3D11VertexShader* vertexShaders[shaderCountMax]; // TODO: com pointers?
     int64 vertexShaderCount;
 
     LPCTSTR pixelShaderNames[shaderCountMax];

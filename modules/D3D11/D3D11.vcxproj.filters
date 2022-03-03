@@ -12,6 +12,9 @@
     <Filter Include="Source Files\include">
       <UniqueIdentifier>{9f50761e-13a8-485e-a420-aa8bf1a2d80e}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\shaders">
+      <UniqueIdentifier>{0349d8d1-31ce-45a3-95fa-7ffcc79dde0d}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\include\D3D11\ShaderRegistry.hpp">
@@ -25,5 +28,13 @@
     <ClCompile Include="source\ShaderRegistry.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="source\Shaders\FullScreen.vs.hlsl">
+      <Filter>Source Files\shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="source\shaders\ToneMapping.ps.hlsl">
+      <Filter>Source Files\shaders</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>
