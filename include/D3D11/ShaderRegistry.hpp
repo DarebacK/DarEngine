@@ -33,10 +33,6 @@ namespace D3D11
 
   private:
     
-    void reset();
-    void load(LPCTSTR shaderDirectoryPath, std::vector<byte>& shaderBytecode);
-    void loadVertexShaderObjectFile(LPCTSTR filePath, LPCTSTR fileName, std::vector<byte>& shaderBytecode);
-
     static constexpr int shaderCountMax = 50;
     static constexpr int shaderNameLengthMax = 32;
 
@@ -51,6 +47,7 @@ namespace D3D11
       int64 count;
 
       void reset();
+      void addName(LPCTSTR fileName);
     };
 
     struct VertexShaders : public Shaders<ID3D11VertexShader>
@@ -60,5 +57,18 @@ namespace D3D11
 
     VertexShaders vertexShaders;
     Shaders<ID3D11PixelShader> pixelShaders;
+
+    void reset();
+
+    void load(LPCTSTR shaderDirectoryPath, std::vector<byte>& shaderBytecode);
+
+    void loadVertexShaderSourceFile(LPCTSTR filePath, LPCTSTR fileName);
+    void loadVertexShaderObjectFile(LPCTSTR filePath, LPCTSTR fileName, std::vector<byte>& shaderBytecode);
+    void createVertexShader(LPCTSTR fileName, const void* shaderBytecode, uint64 shaderBytecodeSize);
+
+    void loadPixelShaderSourceFile(LPCTSTR filePath, LPCTSTR fileName);
+    void loadPixelShaderObjectFile(LPCTSTR filePath, LPCTSTR fileName, std::vector<byte>& shaderBytecode);
+    void createPixelShader(LPCTSTR fileName, const void* shaderBytecode, uint64 shaderBytecodeSize);
+
   };
 }
