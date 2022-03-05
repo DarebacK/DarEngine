@@ -34,20 +34,6 @@ namespace D3D11
     static constexpr int shaderCountMax = 50;
     static constexpr int shaderNameLengthMax = 32;
 
-    template<typename ShaderType>
-    struct Shaders
-    {
-      // TODO: Create proper lookup data structure.
-      CComPtr<ShaderType> handles[shaderCountMax];
-      LPCTSTR names[shaderCountMax];
-      TCHAR namesBuffer[shaderCountMax * shaderNameLengthMax]; // TODO: string hashes for faster lookup?
-      int64 namesBufferEnd; // 1 past last character.
-      int64 count;
-
-      void reset();
-      void addName(LPCTSTR fileName);
-    };
-
     struct VertexShaders
     {
       #define VERTEX_SHADER(name, ...) + 1
@@ -89,10 +75,29 @@ namespace D3D11
       };
       #undef VERTEX_SHADER
     };
-
     VertexShaders vertexShaders;
 
-    Shaders<ID3D11PixelShader> pixelShaders;
+    struct PixelShaders
+    {
+      #define PIXEL_SHADER(name) + 1
+      static constexpr int64 count = 0
+        #include PIXEL_SHADERS
+        ;
+      #undef PIXEL_SHADER
+
+      #define PIXEL_SHADER(name) L ## #name ,
+      static constexpr const wchar_t* const names[] = {
+        #include PIXEL_SHADERS
+      };
+      #undef PIXEL_SHADER
+
+      #define PIXEL_SHADER(name) nullptr,
+      CComPtr<ID3D11PixelShader> handles[count] = {
+        #include PIXEL_SHADERS
+      };
+      #undef PIXEL_SHADER
+    };
+    PixelShaders pixelShaders;
 
     void reset();
 
@@ -143,7 +148,11 @@ namespace D3D11
       vertexShaders.handles[i] = nullptr;
       vertexShaders.inputLayouts[i] = nullptr;
     }
-    pixelShaders.reset();
+
+    for (int64 i = 0; i < pixelShaders.count; i++)
+    {
+      pixelShaders.handles[i] = nullptr;
+    }
   }
 
   void createShaderFilePath(LPCTSTR shaderDirectoryPath, TCHAR* shaderFileName, TCHAR* destination)
@@ -382,7 +391,7 @@ namespace D3D11
 
   void ShaderRegistry::createVertexShader(LPCTSTR fileName, const void* shaderBytecode, uint64 shaderBytecodeSize)
   {
-    int64 shaderIndex = findShader(fileName, vertexShaders);
+    const int64 shaderIndex = findShader(fileName, vertexShaders);
     if (shaderIndex < 0)
     {
       logError("There is no vertex shader %S", fileName);
@@ -437,45 +446,20 @@ namespace D3D11
 
   void ShaderRegistry::createPixelShader(LPCTSTR fileName, const void* shaderBytecode, uint64 shaderBytecodeSize)
   {
-    if (FAILED(device->CreatePixelShader(shaderBytecode, shaderBytecodeSize, nullptr, &pixelShaders.handles[pixelShaders.count])))
+    const int64 shaderIndex = findShader(fileName, pixelShaders);
+    if (shaderIndex < 0)
+    {
+      logError("There is no pixel shader %S", fileName);
+      return;
+    }
+
+    if (FAILED(device->CreatePixelShader(shaderBytecode, shaderBytecodeSize, nullptr, &pixelShaders.handles[shaderIndex])))
     {
       logError("Failed to create pixel shader %S", fileName);
       return;
     }
 
-    pixelShaders.addName(fileName);
-
-    pixelShaders.count++;
-
     logInfo("Successfully loaded pixel shader %S", fileName);
-  }
-
-  template<typename ShaderType>
-  void ShaderRegistry::Shaders<ShaderType>::reset()
-  {
-    for (int64 i = 0; i < shaderCountMax; ++i)
-    {
-      handles[i] = nullptr;
-      names[i] = nullptr;
-      namesBufferEnd = 0;
-      count = 0;
-    }
-  }
-
-  template <typename ShaderType>
-  void ShaderRegistry::Shaders<ShaderType>::addName(LPCTSTR fileName)
-  {
-    int64 shaderNameLength = 0;
-    while (*fileName != L'\0' && *fileName != L'.') // Cut off name extensions.
-    {
-      namesBuffer[namesBufferEnd + shaderNameLength++] = *fileName;
-      fileName++;
-    }
-    namesBuffer[namesBufferEnd + shaderNameLength] = L'\0';
-    const wchar_t* shaderName = namesBuffer + namesBufferEnd;
-    names[count] = shaderName;
-    namesBufferEnd += shaderNameLength + 1;
-    assert(namesBufferEnd <= arrayLength(namesBuffer) + 1);
   }
 
 }
