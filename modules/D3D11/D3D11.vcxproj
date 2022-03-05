@@ -96,9 +96,6 @@
     <ClInclude Include="..\..\include\D3D11\ShaderRegistry.hpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="source\ShaderRegistry.cpp" />
-  </ItemGroup>
-  <ItemGroup>
     <FxCompile Include="source\Shaders\FullScreen.vs.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>

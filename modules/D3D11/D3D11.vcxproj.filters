@@ -25,11 +25,6 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="source\ShaderRegistry.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
     <FxCompile Include="source\Shaders\FullScreen.vs.hlsl">
       <Filter>Source Files\shaders</Filter>
     </FxCompile>
