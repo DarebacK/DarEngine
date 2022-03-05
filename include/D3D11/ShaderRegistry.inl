@@ -26,9 +26,6 @@ namespace D3D11
     // Previously loaded shaders are discarded.
     void reload(LPCTSTR shaderDirectoryPath);
 
-    ID3D11VertexShader* findVertexShader(LPCTSTR name) const;
-    ID3D11PixelShader* findPixelShader(LPCTSTR name) const;
-
   private:
     
     static constexpr int shaderCountMax = 50;
@@ -113,7 +110,17 @@ namespace D3D11
 
   };
 
-  // IMPLEMENTATION DETAILS BELOW
+  // IMPLEMENTATION DETAILS BELOW ------------------------------------------------------------------
+
+  #define VERTEX_SHADER(name, ...) extern CComPtr<ID3D11VertexShader> name ## VertexShader ;
+  #include VERTEX_SHADERS
+  #undef VERTEX_SHADER
+  #define VERTEX_SHADER(name, ...) extern CComPtr<ID3D11InputLayout> name ## InputLayout ;
+  #include VERTEX_SHADERS
+  #undef VERTEX_SHADER
+  #define PIXEL_SHADER(name) extern CComPtr<ID3D11PixelShader> name ## PixelShader ;
+  #include PIXEL_SHADERS
+  #undef PIXEL_SHADER
 
   constexpr UINT compileFlags = 0
 #ifdef DAR_DEBUG
@@ -139,6 +146,19 @@ namespace D3D11
 
     std::vector<byte> shaderBytecode;
     load(searchQuery, shaderBytecode);
+
+    int64 i = 0;
+    #define VERTEX_SHADER(name, ...) name ## VertexShader = vertexShaders.handles[i++];
+    #include VERTEX_SHADERS
+    #undef VERTEX_SHADER
+    i = 0;
+    #define VERTEX_SHADER(name, ...) name ## InputLayout = vertexShaders.inputLayouts[i++];
+    #include VERTEX_SHADERS
+    #undef VERTEX_SHADER
+    i = 0;
+    #define PIXEL_SHADER(name) name ## PixelShader = pixelShaders.handles[i++];
+    #include PIXEL_SHADERS
+    #undef PIXEL_SHADER
   }
 
   void ShaderRegistry::reset()
@@ -191,10 +211,9 @@ namespace D3D11
     return -1;
   }
 
-#define isChar(x) (fileData.cFileName[charIndex] == x)
-#define isFileNameEnd() (fileData.cFileName[charIndex] == L'\0')
-#define logInvalidFile() logError("Invalid file in shader directory: %S", fileData.cFileName)
-
+  #define isChar(x) (fileData.cFileName[charIndex] == x)
+  #define isFileNameEnd() (fileData.cFileName[charIndex] == L'\0')
+  #define logInvalidFile() logError("Invalid file in shader directory: %S", fileData.cFileName)
   void ShaderRegistry::load(LPCTSTR shaderDirectoryPath, std::vector<byte>& shaderBytecode)
   {
     WIN32_FIND_DATA fileData;
@@ -365,6 +384,9 @@ namespace D3D11
       }
     } while (FindNextFile(searchHandle, &fileData));
   }
+  #undef isChar
+  #undef isFileNameEnd
+  #undef logInvalidFile
 
   void ShaderRegistry::loadVertexShaderSourceFile(LPCTSTR filePath, LPCTSTR fileName)
   {

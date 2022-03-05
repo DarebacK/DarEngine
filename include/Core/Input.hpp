@@ -30,6 +30,7 @@ struct Keyboard
   Key down;
   Key up;
   Key F1;
+  Key F5;
   Key rightAlt;
   Key space;
   Key q, w, e;

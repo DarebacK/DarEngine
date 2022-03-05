@@ -17,10 +17,10 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\include\D3D11\ShaderRegistry.hpp">
+    <ClInclude Include="..\..\include\D3D11\D3D11.hpp">
       <Filter>Source Files\include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\D3D11\D3D11.hpp">
+    <ClInclude Include="..\..\include\D3D11\ShaderRegistry.inl">
       <Filter>Source Files\include</Filter>
     </ClInclude>
   </ItemGroup>

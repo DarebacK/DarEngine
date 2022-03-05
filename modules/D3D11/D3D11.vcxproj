@@ -93,7 +93,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="..\..\include\D3D11\D3D11.hpp" />
-    <ClInclude Include="..\..\include\D3D11\ShaderRegistry.hpp" />
+    <ClInclude Include="..\..\include\D3D11\ShaderRegistry.inl" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="source\Shaders\FullScreen.vs.hlsl">
