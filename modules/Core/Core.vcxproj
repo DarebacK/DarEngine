@@ -14,6 +14,7 @@
     <ClCompile Include="source\Core.cpp" />
     <ClCompile Include="source\File.cpp" />
     <ClCompile Include="source\Math.cpp" />
+    <ClCompile Include="source\String.cpp" />
     <ClCompile Include="source\Task.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -21,6 +22,7 @@
     <ClInclude Include="..\..\include\Core\File.hpp" />
     <ClInclude Include="..\..\include\Core\Input.hpp" />
     <ClInclude Include="..\..\include\Core\Math.hpp" />
+    <ClInclude Include="..\..\include\Core\String.hpp" />
     <ClInclude Include="..\..\include\Core\Task.hpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

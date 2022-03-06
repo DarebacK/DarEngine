@@ -93,7 +93,9 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="..\..\include\D3D11\D3D11.hpp" />
-    <ClInclude Include="..\..\include\D3D11\ShaderRegistry.inl" />
+    <None Include="..\..\include\D3D11\ShaderRegistryHeader.inl">
+      <FileType>Document</FileType>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="source\Shaders\FullScreen.vs.hlsl">
@@ -116,6 +118,9 @@
       <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">pixelShaderMain</EntryPointName>
       <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">pixelShaderMain</EntryPointName>
     </FxCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\include\D3D11\ShaderRegistryImpl.inl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
