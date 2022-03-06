@@ -6,4 +6,5 @@
 namespace D3D11
 {
   extern CComPtr<ID3D11Device> device;
+  extern CComPtr<ID3D11DeviceContext> context;
 }

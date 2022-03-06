@@ -9,6 +9,10 @@
 TaskScheduler::TaskScheduler()
   : parallelForFinishedEvent(CreateEvent(NULL, true, true, NULL))
 {
+  for (int i = 0; i < arrayLength(threadCurrentTaskIndices); ++i)
+  {
+    threadCurrentTaskIndices[i] = invalidTaskIndex;
+  }
 }
 
 TaskScheduler::~TaskScheduler()
@@ -59,11 +63,6 @@ TaskScheduler::~TaskScheduler()
 
 void TaskScheduler::initialize(int inThreadCount, int threadAffinitiesOffset)
 {
-  for (int i = 0; i < arrayLength(threadCurrentTaskIndices); ++i)
-  {
-    threadCurrentTaskIndices[i] = invalidTaskIndex;
-  }
-
   inThreadCount = min(inThreadCount, threadCountMax);
   threads.resize(inThreadCount);
   threadContexts.resize(inThreadCount);
@@ -274,7 +273,7 @@ void TaskScheduler::processAllTasks(int64 threadIndex)
     const int64 nextTaskIndexToRead = (taskIndexToRead + 1) % arrayLength(queue.tasks);
     if (queue.taskIndexToRead.compare_exchange_strong(taskIndexToRead, nextTaskIndexToRead))
     {
-      threadCurrentTaskIndices[threadIndex] = taskIndexToRead;
+      threadCurrentTaskIndices[threadIndex] = static_cast<uint8>(taskIndexToRead);
 
       const Task task = queue.tasks[taskIndexToRead];
       task.function(task.data);
