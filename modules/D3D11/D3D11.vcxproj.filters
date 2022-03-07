@@ -28,6 +28,9 @@
     <FxCompile Include="source\shaders\ToneMapping.ps.hlsl">
       <Filter>Source Files\shaders</Filter>
     </FxCompile>
+    <FxCompile Include="source\shaders\Terrain.vs.hlsl">
+      <Filter>Source Files\shaders</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\include\D3D11\ShaderRegistryImpl.inl">

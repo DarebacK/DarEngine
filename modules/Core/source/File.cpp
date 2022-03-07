@@ -14,4 +14,6 @@ bool tryReadEntireFile(const wchar_t* fileName, std::vector<byte>& buffer)
 
   file.seekg(0);
   file.read(reinterpret_cast<char*>(buffer.data()), buffer.size());
+
+  return true;
 }
