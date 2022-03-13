@@ -16,5 +16,5 @@ struct PngReadResult
 };
 PngReadResult readPng(const byte* pngData, int64 pngDataSize);
 
-// You can leave strideInBytes to 0 for 1 byte per channel.
-bool writePng(const char* fileName, const byte* data, int64 width, int64 height, int64 channelCount, int64 strideInBytes = 0);
+// data is expected to contain big endian in case of 16+ bit depths.
+bool writePngBigEndian(const char* fileName, const byte* data, int64 width, int64 height, int64 channelCount, int64 bitDepth);

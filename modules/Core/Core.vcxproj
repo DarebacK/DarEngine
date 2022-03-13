@@ -12,6 +12,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="source\Core.cpp" />
+    <ClCompile Include="source\external\lodepng.cpp" />
     <ClCompile Include="source\File.cpp" />
     <ClCompile Include="source\Image.cpp" />
     <ClCompile Include="source\Math.cpp" />

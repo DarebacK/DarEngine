@@ -12,6 +12,9 @@
     <Filter Include="Source Files\include">
       <UniqueIdentifier>{4111cfcc-eacc-4f67-aa4b-5a246aa5a35d}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\external">
+      <UniqueIdentifier>{22223571-c3ef-45b0-bc54-32294d307d8c}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="source\Core.cpp">
@@ -31,6 +34,9 @@
     </ClCompile>
     <ClCompile Include="source\Image.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="source\external\lodepng.cpp">
+      <Filter>Source Files\external</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

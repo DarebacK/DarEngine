@@ -5,6 +5,8 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <external/stb_image.h>
 
+#include <external/lodepng.h>
+
 PngReadResult::PngReadResult(PngReadResult&& other)
 {
   data = other.data;
@@ -41,7 +43,7 @@ PngReadResult readPng(const byte* pngData, int64 pngDataSize)
   return result;
 }
 
-bool writePng(const char* fileName, const byte* data, int64 width, int64 height, int64 channelCount, int64 strideInBytes)
+bool writePngBigEndian(const char* fileName, const byte* data, int64 width, int64 height, int64 channelCount, int64 bitDepth)
 {
-  return false;
+  return lodepng::encode(fileName, data, width, height, LodePNGColorType::LCT_GREY, bitDepth) == 0;
 }
