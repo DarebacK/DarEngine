@@ -1,4 +1,6 @@
 #pragma once
+
+#include <stdlib.h>
 #include <stdio.h>
 #include <cstdint>
 
@@ -69,3 +71,25 @@ using uint64 = uint64_t; static_assert(sizeof(uint64) == 8);
   #define debugText(...)
   #define debugResetText()
 #endif
+
+#define PLATFORM_WINDOWS 1 // Only supported platform so far
+
+#if PLATFORM_WINDOWS
+  #define LITTLE_ENDIAN 1
+  #define BIG_ENDIAN 0
+#endif
+
+#ifdef _MSC_VER
+  #define COMPILER_MSVC 1
+#else
+  #define COMPILER_MSVC 0
+#endif
+
+inline uint16 nativeToBigEndian(uint16 value)
+{
+#if BIG_ENDIAN
+    return value;
+#elif COMPILER_MSVC
+    return _byteswap_ushort(value);
+#endif
+}
