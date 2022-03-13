@@ -61,6 +61,14 @@ TaskScheduler::~TaskScheduler()
   }
 }
 
+void TaskScheduler::initialize()
+{
+  SYSTEM_INFO systemInfo;
+  GetSystemInfo(&systemInfo);
+  const int workerThreadCount = max(systemInfo.dwNumberOfProcessors - 1, 1);
+  initialize(workerThreadCount, 1);
+}
+
 void TaskScheduler::initialize(int inThreadCount, int threadAffinitiesOffset)
 {
   inThreadCount = min(inThreadCount, threadCountMax);

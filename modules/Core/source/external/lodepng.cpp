@@ -6465,6 +6465,28 @@ unsigned encode(std::vector<unsigned char>& out,
   return encode(out, in.empty() ? 0 : &in[0], w, h, state);
 }
 
+// edit(pavel.morcinek): Added file output versions
+unsigned encode(const std::string& filename,
+  const unsigned char* in, unsigned w, unsigned h,
+  State& state)
+{
+  std::vector<unsigned char> buffer;
+  unsigned error = encode(buffer, in, w, h, state);
+  if (!error) error = save_file(buffer, filename);
+  return error;
+}
+
+unsigned encode(const std::string& filename,
+  const std::vector<unsigned char>& in, unsigned w, unsigned h,
+  State& state)
+{
+  std::vector<unsigned char> buffer;
+  unsigned error = encode(buffer, in, w, h, state);
+  if (!error) error = save_file(buffer, filename);
+  return error;
+}
+// end of edit(pavel.morcinek)
+
 #ifdef LODEPNG_COMPILE_DISK
 unsigned encode(const std::string& filename,
                 const unsigned char* in, unsigned w, unsigned h,

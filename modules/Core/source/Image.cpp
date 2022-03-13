@@ -43,7 +43,15 @@ PngReadResult readPng(const byte* pngData, int64 pngDataSize)
   return result;
 }
 
-bool writePngBigEndian(const char* fileName, const byte* data, int64 width, int64 height, int64 channelCount, int64 bitDepth)
+bool writePngLosslessGrayscaleBigEndian(const char* fileName, const byte* data, int64 width, int64 height, int64 channelCount, int64 bitDepth)
 {
-  return lodepng::encode(fileName, data, width, height, LodePNGColorType::LCT_GREY, bitDepth) == 0;
+  lodepng::State state;
+
+  LodePNGColorMode colorMode = lodepng_color_mode_make(LodePNGColorType::LCT_GREY, bitDepth);
+  lodepng_color_mode_copy(&state.info_raw, &colorMode);
+  lodepng_color_mode_copy(&state.info_png.color, &colorMode);
+
+  state.encoder.auto_convert = 0;
+
+  return lodepng::encode(fileName, data, width, height, state) == 0;
 }

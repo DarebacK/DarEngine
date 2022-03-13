@@ -17,6 +17,8 @@ public:
   TaskScheduler(TaskScheduler&& other) = delete;
   ~TaskScheduler();
 
+  // Initializes with threadCount == max(processorCount - 1, 1) and threadAffinitiesOffset == 1;
+  void initialize();
   void initialize(int threadCount, int threadAffinitiesOffset);
 
   void schedule(TaskFunction task, void* taskData);

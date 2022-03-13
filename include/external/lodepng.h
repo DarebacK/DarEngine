@@ -1050,6 +1050,16 @@ unsigned encode(std::vector<unsigned char>& out,
 unsigned encode(std::vector<unsigned char>& out,
                 const std::vector<unsigned char>& in, unsigned w, unsigned h,
                 State& state);
+
+// edit(pavel.morcinek): added file output versions
+unsigned encode(const std::string& filename,
+  const unsigned char* in, unsigned w, unsigned h,
+  State& state);
+unsigned encode(const std::string& filename,
+  const std::vector<unsigned char>& in, unsigned w, unsigned h,
+  State& state);
+// end of edit(pavel.morcinek)
+
 #endif /*LODEPNG_COMPILE_ENCODER*/
 
 #ifdef LODEPNG_COMPILE_DISK
