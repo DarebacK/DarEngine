@@ -93,3 +93,9 @@ inline uint16 nativeToBigEndian(uint16 value)
     return _byteswap_ushort(value);
 #endif
 }
+
+#define STRINGIFY(a) #a
+#define STRINGIFY_DEFINE(a) STRINGIFY(a)
+
+#define WSTRINGIFY(a) L ## #a
+#define WSTRINGIFY_DEFINE(a) WSTRINGIFY(a)
