@@ -1,6 +1,7 @@
 #include "Core/Image.hpp"
 
 #include "Core/Core.hpp"
+#include "Core/File.hpp"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <external/stb_image.h>
@@ -25,6 +26,22 @@ PngReadResult::~PngReadResult()
   }
 }
 
+PngReadResult& PngReadResult::operator=(PngReadResult&& other)
+{
+  swap(*this, other);
+  return *this;
+}
+
+void swap(PngReadResult& first, PngReadResult& second)
+{
+  using std::swap;
+
+  swap(first.data, second.data);
+  swap(first.width, second.width);
+  swap(first.height, second.height);
+  swap(first.channelCount, second.channelCount);
+}
+
 PngReadResult readPng(const byte* pngData, int64 pngDataSize)
 {
   PngReadResult result;
@@ -41,6 +58,18 @@ PngReadResult readPng(const byte* pngData, int64 pngDataSize)
   result.height = height;
   result.channelCount = channelCount;
   return result;
+}
+
+PngReadResult readPng(const wchar_t* fileName)
+{
+  std::vector<byte> fileData;
+  if (!tryReadEntireFile(fileName, fileData))
+  {
+    logError("Failed to read png file %ls", fileName);
+    return {};
+  }
+
+  return readPng(fileData.data(), fileData.size());
 }
 
 bool writePngLosslessGrayscaleBigEndian(const char* fileName, const byte* data, int64 width, int64 height, int64 channelCount, int64 bitDepth)
