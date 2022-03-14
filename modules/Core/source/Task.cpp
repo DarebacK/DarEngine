@@ -196,7 +196,7 @@ void TaskScheduler::parallelFor(int64 beginValue, int64 endValue, const std::fun
   ParallelForTaskData* taskData = nullptr;
   if (beginValueForWorkerThreads < endValue)
   {
-    taskData = new ParallelForTaskData{ beginValueForWorkerThreads, endValue, function, 0, parallelForFinishedEvent, static_cast<int64>(threads.size()) };
+    taskData = new ParallelForTaskData{ beginValueForWorkerThreads, endValue, function, iterationCountToDoInCurrentThread, parallelForFinishedEvent, static_cast<int64>(threads.size()) };
     for(size_t i = 0; i < threads.size(); ++i)
     {
       schedule(&parallelForTask, taskData);

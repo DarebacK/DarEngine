@@ -25,6 +25,8 @@ public:
 
   void parallelFor(int64 beginValue, int64 endValue, const std::function<void(int64)>& function);
 
+  int64 getThreadCount() { return static_cast<int64>(threads.size()); }
+
 private:
 
   struct Task
@@ -46,7 +48,6 @@ private:
   volatile uint8 threadCurrentTaskIndices[threadCountMax]; // fits into 1 cacheline.
 
   void* parallelForFinishedEvent;
-
 
   std::vector<void*> threads;
   volatile bool threadsShouldStop = false;
