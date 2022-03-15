@@ -6,6 +6,8 @@
 #include <Windows.h>
 #include <intrin.h>
 
+TaskScheduler taskScheduler;
+
 TaskScheduler::TaskScheduler()
   : parallelForFinishedEvent(CreateEvent(NULL, true, true, NULL))
 {

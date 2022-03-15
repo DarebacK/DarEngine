@@ -69,6 +69,8 @@ private:
   void processAllTasks(int64 threadIndex);
 };
 
+extern TaskScheduler taskScheduler;
+
 #define DEFINE_TASK_BEGIN(taskName, TaskDataType) \
   void taskName (void* taskParameter) \
     { \

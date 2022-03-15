@@ -94,6 +94,15 @@ inline uint16 nativeToBigEndian(uint16 value)
 #endif
 }
 
+inline uint16 bigEndianToNative(uint16 value)
+{
+#if BIG_ENDIAN
+  return value;
+#elif COMPILER_MSVC
+  return _byteswap_ushort(value);
+#endif
+}
+
 #define STRINGIFY(a) #a
 #define STRINGIFY_DEFINE(a) STRINGIFY(a)
 
