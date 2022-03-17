@@ -340,6 +340,16 @@ struct Mat4x3f
      {          0.f,          0.f, 0.f}
     } };
   }
+  static Mat4x3f scale(float x, float y, float z) noexcept
+  {
+    return
+    { {
+     {   x, 0.f, 0.f},
+     { 0.f,   y, 0.f},
+     { 0.f, 0.f,   z},
+     { 0.f, 0.f, 0.f}
+    } };
+  }
   static Mat4x3f lookAt(const Vec3f& eyePosition, const Vec3f& focusPosition, const Vec3f& upDirection) noexcept
   {
     assert(eyePosition != focusPosition);
