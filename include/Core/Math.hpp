@@ -11,6 +11,12 @@
 
 constexpr float Pi = 3.14159265358979323846f;
 
+template<typename T>
+inline T cotan(T degreeInRadians) noexcept
+{
+  return cos(degreeInRadians) / sin(degreeInRadians);
+}
+
 struct Vec2f
 {
   float x, y;
@@ -515,6 +521,16 @@ inline Mat4f toMat4f(const Mat4x3f& m) noexcept
     m[2][0], m[2][1], m[2][2], 0.f,
     m[3][0], m[3][1], m[3][2], 1.f
   };
+}
+
+inline float verticalToHorizontalFieldOfView(float verticalRadians, float aspectRatio) noexcept
+{
+  // from https://www.reddit.com/r/Planetside/comments/1xl1z5/brief_table_for_calculating_fieldofview_vertical/
+  return 2.f * atan(tan(verticalRadians / 2.f) * aspectRatio);
+}
+inline float horizontalToVerticalFieldOfView(float horizontalRadians, float aspectRatio) noexcept
+{
+  return 2.f * atan(tan(horizontalRadians / 2.f) * (1.f / aspectRatio));
 }
 
 struct Quatf

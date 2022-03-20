@@ -23,6 +23,7 @@ public:
 
   void schedule(TaskFunction task, void* taskData);
 
+  // endValue means 1 past end
   void parallelFor(int64 beginValue, int64 endValue, const std::function<void(int64)>& function);
 
   int64 getThreadCount() { return static_cast<int64>(threads.size()); }
