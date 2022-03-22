@@ -137,7 +137,6 @@ struct ParallelForTaskData
   std::function<void(int64)> function;
   std::atomic<int64> functionCallsDoneCount;
   void* finishedEvent;
-  std::atomic<int64> workerThreadsRemainingCount;
 };
 
 static void parallelForTaskInternal(ParallelForTaskData& taskData)
@@ -162,11 +161,6 @@ static void parallelForTaskInternal(ParallelForTaskData& taskData)
 DEFINE_TASK_BEGIN(parallelForTask, ParallelForTaskData)
 {
   parallelForTaskInternal(taskData);
-
-  if (--taskData.workerThreadsRemainingCount == 0)
-  {
-    delete &taskData;
-  }
 }
 DEFINE_TASK_END
 
@@ -198,11 +192,15 @@ void TaskScheduler::parallelFor(int64 beginValue, int64 endValue, const std::fun
   ParallelForTaskData* taskData = nullptr;
   if (beginValueForWorkerThreads < endValue)
   {
-    taskData = new ParallelForTaskData{ beginValueForWorkerThreads, endValue, function, iterationCountToDoInCurrentThread, parallelForFinishedEvent, static_cast<int64>(threads.size()) };
+    taskData = new ParallelForTaskData{ beginValueForWorkerThreads, endValue, function, iterationCountToDoInCurrentThread, parallelForFinishedEvent };
     for(size_t i = 0; i < threads.size(); ++i)
     {
       schedule(&parallelForTask, taskData);
     }
+  }
+  else
+  {
+    SetEvent(parallelForFinishedEvent);
   }
 
   for (int64 i = beginValue; i < beginValue + iterationCountToDoInCurrentThread; ++i)
@@ -216,19 +214,23 @@ void TaskScheduler::parallelFor(int64 beginValue, int64 endValue, const std::fun
     if(taskData->functionCallsDoneCount.load(std::memory_order_relaxed) < iterationCountToDoInWorkerThreads)
     {
       parallelForTaskInternal(*taskData); // Help out with remaining iterations.
+    }
 
-      constexpr DWORD waitTimeoutMs = 1000;
-      waitResult = WaitForSingleObject(parallelForFinishedEvent, waitTimeoutMs);
-      switch (waitResult)
-      {
-        case WAIT_TIMEOUT:
-          logError("parallelForFinishedEvent timeout after %d ms.", waitTimeoutMs);
-          break;
+    constexpr DWORD waitTimeoutMs = 1000;
+    waitResult = WaitForSingleObject(parallelForFinishedEvent, waitTimeoutMs);
+    switch (waitResult)
+    {
+    case WAIT_OBJECT_0:
+      delete taskData;
+      break;
 
-        case WAIT_FAILED:
-          logError("failed to wait on parallelForFinishedEvent.");
-          break;
-      }
+    case WAIT_TIMEOUT:
+      logError("parallelForFinishedEvent timeout after %d ms. The task data will be leaked.", waitTimeoutMs);
+      break;
+
+    case WAIT_FAILED:
+      logError("Failed to wait on parallelForFinishedEvent. The task data will be leaked.");
+      break;
     }
   }
 
