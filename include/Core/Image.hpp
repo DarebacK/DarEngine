@@ -47,7 +47,6 @@ struct Image
   int32 width = 0;
   int32 height = 0;
   PixelFormat pixelFormat = PixelFormat::Invalid;
-  int8 channelCount = 0;
   ChromaSubsampling chromaSubsampling = ChromaSubsampling_Invalid;
 };
 

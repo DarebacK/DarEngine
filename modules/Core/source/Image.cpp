@@ -57,7 +57,6 @@ void swap(Image& first, Image& second)
   swap(first.width, second.width);
   swap(first.height, second.height);
   swap(first.pixelFormat, second.pixelFormat);
-  swap(first.channelCount, second.channelCount);
   swap(first.chromaSubsampling, second.chromaSubsampling);
 }
 
@@ -235,8 +234,7 @@ Image JpegReader::read(const byte* jpegData, int64 jpegDataSize, PixelFormat out
   }
 
   Image image;
-  image.channelCount = toChannelCount(outputPixelFormat);
-  image.data = static_cast<byte*>(malloc(width * height * image.channelCount));
+  image.data = static_cast<byte*>(malloc(width * height * toChannelCount(outputPixelFormat)));
   image.width = width;
   image.height = height;
   image.pixelFormat = outputPixelFormat;
