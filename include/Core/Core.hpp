@@ -20,6 +20,7 @@ using uint64 = uint64_t; static_assert(sizeof(uint64) == 8);
 
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
 #include <windows.h>
 
   #define logError(message, ...) \
