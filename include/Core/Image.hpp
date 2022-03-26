@@ -17,8 +17,12 @@ enum class PixelFormat : uint8
   BGR,
   Grayscale,
 };
-
 int8 toChannelCount(PixelFormat pixelFormat);
+
+struct RgbPixel
+{
+  uint8 r, g, b;
+};
 
 enum ChromaSubsampling : uint8
 {
