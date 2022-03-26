@@ -211,6 +211,13 @@ JpegReader::JpegReader()
   }
 }
 
+JpegReader::JpegReader(JpegReader&& other)
+{
+  using std::swap;
+
+  swap(decompressor, other.decompressor);
+}
+
 JpegReader::~JpegReader()
 {
   if (decompressor)

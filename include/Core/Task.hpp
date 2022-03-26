@@ -10,7 +10,12 @@ class TaskScheduler
 {
 public:
 
-  using TaskFunction = void (*)(void*);
+  struct ThreadContext
+  {
+    TaskScheduler* taskScheduler;
+    int64 threadIndex;
+  };
+  using TaskFunction = void (*)(void* taskParameter, const ThreadContext& threadContext);
 
   TaskScheduler();
   TaskScheduler(const TaskScheduler& other) = delete;
@@ -24,7 +29,7 @@ public:
   void schedule(TaskFunction task, void* taskData);
 
   // endValue means 1 past end
-  void parallelFor(int64 beginValue, int64 endValue, const std::function<void(int64)>& function);
+  void parallelFor(int64 beginValue, int64 endValue, const std::function<void(int64 iterationIndex, int64 threadIndex)>& function);
 
   int64 getThreadCount() { return static_cast<int64>(threads.size()); }
 
@@ -53,11 +58,6 @@ private:
   std::vector<void*> threads;
   volatile bool threadsShouldStop = false;
 
-  struct ThreadContext
-  {
-    TaskScheduler* taskScheduler;
-    int64 threadIndex;
-  };
   std::vector<ThreadContext> threadContexts;
   
   void* threadSemaphore = nullptr;
@@ -67,13 +67,13 @@ private:
   static unsigned long workerThreadMain(void* parameter);
 
   bool taskIsBeingConsumed(int64 taskIndex) const;
-  void processAllTasks(int64 threadIndex);
+  void processAllTasks(const ThreadContext& threadContext);
 };
 
 extern TaskScheduler taskScheduler;
 
 #define DEFINE_TASK_BEGIN(taskName, TaskDataType) \
-  void taskName (void* taskParameter) \
+  void taskName (void* taskParameter, const TaskScheduler::ThreadContext& threadContext) \
     { \
       TaskDataType& taskData = *static_cast<TaskDataType*>(taskParameter);
 

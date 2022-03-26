@@ -134,18 +134,18 @@ struct ParallelForTaskData
 {
   std::atomic<int64> currentValue;
   int64 endValue;
-  std::function<void(int64)> function;
+  std::function<void(int64 iterationIndex, int64 threadIndex)> function;
   std::atomic<int64> functionCallsDoneCount;
   void* finishedEvent;
 };
 
-static void parallelForTaskInternal(ParallelForTaskData& taskData)
+static void parallelForTaskInternal(ParallelForTaskData& taskData, int64 threadIndex)
 {
   int64 currentValue = taskData.currentValue++;
   int64 localFunctionCallsDoneCount = 0;
   while (currentValue < taskData.endValue)
   {
-    taskData.function(currentValue);
+    taskData.function(currentValue, threadIndex);
     currentValue = taskData.currentValue++;
     // We have to count this instead of using currentValue as some iteration might take longer than the rest.
     localFunctionCallsDoneCount = ++taskData.functionCallsDoneCount;
@@ -160,11 +160,11 @@ static void parallelForTaskInternal(ParallelForTaskData& taskData)
 
 DEFINE_TASK_BEGIN(parallelForTask, ParallelForTaskData)
 {
-  parallelForTaskInternal(taskData);
+  parallelForTaskInternal(taskData, threadContext.threadIndex + 1); // Calling thread is 0.
 }
 DEFINE_TASK_END
 
-void TaskScheduler::parallelFor(int64 beginValue, int64 endValue, const std::function<void(int64)>& function)
+void TaskScheduler::parallelFor(int64 beginValue, int64 endValue, const std::function<void(int64 iterationIndex, int64 threadIndex)>& function)
 {
   DWORD waitResult = WaitForSingleObject(parallelForFinishedEvent, 0);
   switch (waitResult)
@@ -205,7 +205,7 @@ void TaskScheduler::parallelFor(int64 beginValue, int64 endValue, const std::fun
 
   for (int64 i = beginValue; i < beginValue + iterationCountToDoInCurrentThread; ++i)
   {
-    function(i);
+    function(i, 0);
   }
 
   if (taskData)
@@ -213,7 +213,7 @@ void TaskScheduler::parallelFor(int64 beginValue, int64 endValue, const std::fun
     const int64 iterationCountToDoInWorkerThreads = endValue - beginValueForWorkerThreads;
     if(taskData->functionCallsDoneCount.load(std::memory_order_relaxed) < iterationCountToDoInWorkerThreads)
     {
-      parallelForTaskInternal(*taskData); // Help out with remaining iterations.
+      parallelForTaskInternal(*taskData, 0); // Help out with remaining iterations.
     }
 
     constexpr DWORD waitTimeoutMs = 1000;
@@ -238,9 +238,8 @@ void TaskScheduler::parallelFor(int64 beginValue, int64 endValue, const std::fun
 
 DWORD TaskScheduler::workerThreadMain(LPVOID parameter)
 {
-  TaskScheduler::ThreadContext* threadContext = static_cast<TaskScheduler::ThreadContext*>(parameter);
-  TaskScheduler& taskScheduler = *threadContext->taskScheduler;
-  const int64 threadIndex = threadContext->threadIndex;
+  TaskScheduler::ThreadContext& threadContext = *static_cast<TaskScheduler::ThreadContext*>(parameter);
+  TaskScheduler& taskScheduler = *threadContext.taskScheduler;
 
   while (!taskScheduler.threadsShouldStop)
   {
@@ -251,7 +250,7 @@ DWORD TaskScheduler::workerThreadMain(LPVOID parameter)
       break;
     }
 
-    taskScheduler.processAllTasks(threadIndex);
+    taskScheduler.processAllTasks(threadContext);
   }
 
   return 0;
@@ -270,7 +269,7 @@ bool TaskScheduler::taskIsBeingConsumed(int64 taskIndex) const
   return false;
 }
 
-void TaskScheduler::processAllTasks(int64 threadIndex)
+void TaskScheduler::processAllTasks(const ThreadContext& threadContext)
 {
   while (true)
   {
@@ -285,12 +284,12 @@ void TaskScheduler::processAllTasks(int64 threadIndex)
     const int64 nextTaskIndexToRead = (taskIndexToRead + 1) % arrayLength(queue.tasks);
     if (queue.taskIndexToRead.compare_exchange_strong(taskIndexToRead, nextTaskIndexToRead))
     {
-      threadCurrentTaskIndices[threadIndex] = static_cast<uint8>(taskIndexToRead);
+      threadCurrentTaskIndices[threadContext.threadIndex] = static_cast<uint8>(taskIndexToRead);
 
       const Task task = queue.tasks[taskIndexToRead];
-      task.function(task.data);
+      task.function(task.data, threadContext);
 
-      threadCurrentTaskIndices[threadIndex] = invalidTaskIndex;
+      threadCurrentTaskIndices[threadContext.threadIndex] = invalidTaskIndex;
     }
   }
 }

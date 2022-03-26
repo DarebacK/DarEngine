@@ -87,7 +87,7 @@ public:
 
   JpegReader();
   JpegReader(const JpegReader& other) = delete;
-  JpegReader(const JpegReader&& other) = delete;
+  JpegReader(JpegReader&& other);
   ~JpegReader();
 
   // returned Image.chromaSubsampling contains the input subsampling. 
@@ -95,7 +95,7 @@ public:
 
 private:
 
-  void* decompressor;
+  void* decompressor = nullptr;
 };
 
 class JpegWriter
