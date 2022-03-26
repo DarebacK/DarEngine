@@ -240,7 +240,7 @@ Image JpegReader::read(const byte* jpegData, int64 jpegDataSize, PixelFormat out
   image.pixelFormat = outputPixelFormat;
   image.chromaSubsampling = tjChromaSubsamplingToDarCromaSubsampling(chromaSubsampling);
 
-  if (tjDecompress2(decompressor, jpegData, unsigned long(jpegDataSize), image.data, width, 0, height, darPixelFormatToTjPixelFormat(outputPixelFormat), TJFLAG_BOTTOMUP | TJFLAG_ACCURATEDCT | TJFLAG_NOREALLOC) != 0)
+  if (tjDecompress2(decompressor, jpegData, unsigned long(jpegDataSize), image.data, width, 0, height, darPixelFormatToTjPixelFormat(outputPixelFormat), TJFLAG_ACCURATEDCT | TJFLAG_NOREALLOC) != 0)
   {
     logError("Failed to decompress jpeg image. %s", tjGetErrorStr2(decompressor));
     return {};
@@ -276,7 +276,7 @@ bool JpegWriter::tryWrite(const Image& image, int8 quality, const char* fileName
   byte* jpegData = nullptr;
   unsigned long jpegDataSize = 0;
   if (tjCompress2(compressor, image.data, image.width, 0, image.height, darPixelFormatToTjPixelFormat(image.pixelFormat), &jpegData, &jpegDataSize, 
-      darChromaSubsamplingToTjSubsampling(image.chromaSubsampling), int(quality), TJFLAG_ACCURATEDCT | TJFLAG_BOTTOMUP) != 0)
+      darChromaSubsamplingToTjSubsampling(image.chromaSubsampling), int(quality), TJFLAG_ACCURATEDCT) != 0)
   {
     logError("Failed to compress jpeg image. %s", tjGetErrorStr2(compressor));
     return false;
