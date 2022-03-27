@@ -38,6 +38,9 @@
     <ClCompile Include="source\external\lodepng.cpp">
       <Filter>Source Files\external</Filter>
     </ClCompile>
+    <ClCompile Include="source\Input.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\include\Core\Core.hpp">
@@ -61,5 +64,10 @@
     <ClInclude Include="..\..\include\Core\Image.hpp">
       <Filter>Source Files\include</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\include\Core\Input.inl">
+      <Filter>Source Files\include</Filter>
+    </None>
   </ItemGroup>
 </Project>

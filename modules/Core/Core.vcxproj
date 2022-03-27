@@ -15,6 +15,7 @@
     <ClCompile Include="source\external\lodepng.cpp" />
     <ClCompile Include="source\File.cpp" />
     <ClCompile Include="source\Image.cpp" />
+    <ClCompile Include="source\Input.cpp" />
     <ClCompile Include="source\Math.cpp" />
     <ClCompile Include="source\String.cpp" />
     <ClCompile Include="source\Task.cpp" />
@@ -27,6 +28,9 @@
     <ClInclude Include="..\..\include\Core\Math.hpp" />
     <ClInclude Include="..\..\include\Core\String.hpp" />
     <ClInclude Include="..\..\include\Core\Task.hpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\include\Core\Input.inl" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
