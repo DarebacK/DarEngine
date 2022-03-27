@@ -17,6 +17,11 @@ inline T cotan(T degreeInRadians) noexcept
   return cos(degreeInRadians) / sin(degreeInRadians);
 }
 
+constexpr inline float lerp(float v1, float v2, float t)
+{
+  return (1.f - t)*v1 + t*v2;
+}
+
 struct Vec2f
 {
   float x, y;
