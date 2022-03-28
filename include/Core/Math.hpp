@@ -97,6 +97,15 @@ constexpr inline Vec3f lerp(const Vec3f& v1, const Vec3f& v2, float t) noexcept
 {
   return lerp(v1, v2, t, 1.f - t);
 }
+inline Vec3f min(const Vec3f& v1, const Vec3f& v2) noexcept
+{
+  return { std::min(v1.x, v2.x), std::min(v1.y, v2.y), std::min(v1.z, v2.z) };
+}
+inline Vec3f max(const Vec3f& v1, const Vec3f& v2) noexcept
+{
+  return { std::max(v1.x, v2.x), std::max(v1.y, v2.y), std::max(v1.z, v2.z)};
+}
+
 struct Vec4f
 {
   float x, y, z, w;
