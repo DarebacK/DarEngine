@@ -134,6 +134,7 @@ struct ParallelForTaskData
   int64 endValue;
   std::function<void(int64 iterationIndex, int64 threadIndex)> function;
   std::atomic<int64> functionCallsDoneCount;
+  std::atomic<int64> threadsRemaining;
   void* finishedEvent;
 };
 
@@ -159,6 +160,11 @@ static void parallelForTaskInternal(ParallelForTaskData& taskData, int64 threadI
 DEFINE_TASK_BEGIN(parallelForTask, ParallelForTaskData)
 {
   parallelForTaskInternal(taskData, threadContext.threadIndex + 1); // Calling thread is 0.
+
+  if (--taskData.threadsRemaining == 0)
+  {
+    delete& taskData;
+  }
 }
 DEFINE_TASK_END
 
@@ -168,12 +174,11 @@ void TaskScheduler::parallelFor(int64 beginValue, int64 endValue, const std::fun
   switch (waitResult)
   {
     case WAIT_TIMEOUT:
-      logError("parallelForFinishedEvent is not signaled from last call.");
-      parallelForFinishedEvent = CreateEvent(NULL, true, true, NULL); // old one will leak, but this situation shouldn't happen.
-      break;
-
+      logError("parallelForFinishedEvent is not signaled from last call. It will be leaked.");
+      [[fallthrough]];
     case WAIT_FAILED:
-      logError("failed to wait on parallelForFinishedEvent from last call.");
+      logError("Failed to wait on parallelForFinishedEvent from last call. It will be leaked.");
+      parallelForFinishedEvent = CreateEvent(NULL, true, true, NULL); // old one will leak, but this situation shouldn't happen.
       break;
   }
   ResetEvent(parallelForFinishedEvent);
@@ -190,7 +195,8 @@ void TaskScheduler::parallelFor(int64 beginValue, int64 endValue, const std::fun
   ParallelForTaskData* taskData = nullptr;
   if (beginValueForWorkerThreads < endValue)
   {
-    taskData = new ParallelForTaskData{ beginValueForWorkerThreads, endValue, function, iterationCountToDoInCurrentThread, parallelForFinishedEvent };
+    const int64 totalThreadCount = int64(threads.size() + 1); // We assume the calling thread is not one of the worker threads.
+    taskData = new ParallelForTaskData{ beginValueForWorkerThreads, endValue, function, iterationCountToDoInCurrentThread, totalThreadCount, parallelForFinishedEvent };
     for(size_t i = 0; i < threads.size(); ++i)
     {
       schedule(&parallelForTask, taskData);
@@ -209,26 +215,33 @@ void TaskScheduler::parallelFor(int64 beginValue, int64 endValue, const std::fun
   if (taskData)
   {
     const int64 iterationCountToDoInWorkerThreads = endValue - beginValueForWorkerThreads;
-    if(taskData->functionCallsDoneCount.load(std::memory_order_relaxed) < iterationCountToDoInWorkerThreads)
+    const int64 iterationsDoneInWorkerThreads = taskData->functionCallsDoneCount.load(std::memory_order_relaxed) - iterationCountToDoInCurrentThread;
+    if (iterationsDoneInWorkerThreads < iterationCountToDoInWorkerThreads)
     {
       parallelForTaskInternal(*taskData, 0); // Help out with remaining iterations.
     }
 
-    constexpr DWORD waitTimeoutMs = 1000;
-    waitResult = WaitForSingleObject(parallelForFinishedEvent, waitTimeoutMs);
-    switch (waitResult)
+    if (--taskData->threadsRemaining == 0)
     {
-    case WAIT_OBJECT_0:
       delete taskData;
-      break;
+    }
+    else
+    {
+      constexpr DWORD waitTimeoutMs = 1000;
+      waitResult = WaitForSingleObject(parallelForFinishedEvent, waitTimeoutMs);
+      switch (waitResult)
+      {
+        case WAIT_TIMEOUT:
+          logError("parallelForFinishedEvent timeout after %d ms.", waitTimeoutMs);
+          break;
 
-    case WAIT_TIMEOUT:
-      logError("parallelForFinishedEvent timeout after %d ms. The task data will be leaked.", waitTimeoutMs);
-      break;
+        case WAIT_FAILED:
+          logError("Failed to wait on parallelForFinishedEvent.");
+          break;
 
-    case WAIT_FAILED:
-      logError("Failed to wait on parallelForFinishedEvent. The task data will be leaked.");
-      break;
+        default:
+          break;
+      }
     }
   }
 
