@@ -19,6 +19,7 @@
     <ClCompile Include="source\Math.cpp" />
     <ClCompile Include="source\String.cpp" />
     <ClCompile Include="source\Task.cpp" />
+    <ClCompile Include="source\WindowsPlatform.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\include\Core\Core.hpp" />
@@ -28,6 +29,7 @@
     <ClInclude Include="..\..\include\Core\Math.hpp" />
     <ClInclude Include="..\..\include\Core\String.hpp" />
     <ClInclude Include="..\..\include\Core\Task.hpp" />
+    <ClInclude Include="..\..\include\Core\WindowsPlatform.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\include\Core\Input.inl" />
