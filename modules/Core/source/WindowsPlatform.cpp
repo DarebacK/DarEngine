@@ -64,3 +64,29 @@ Vec2i MainWindow::getCursorPosition()
   }
   return mousePosition;
 }
+
+void runGameLoop(std::function<void(int64 frameIndex, float timeDelta)> frameCallback)
+{
+  LARGE_INTEGER counterFrequency;
+  QueryPerformanceFrequency(&counterFrequency);
+  LARGE_INTEGER lastCounterValue;
+  QueryPerformanceCounter(&lastCounterValue);
+
+  int64 frameIndex = 0;
+
+  MSG message{};
+  while (message.message != WM_QUIT) {
+    if (PeekMessage(&message, nullptr, 0, 0, PM_REMOVE)) {
+      TranslateMessage(&message);
+      DispatchMessage(&message);
+    }
+    else {
+      LARGE_INTEGER currentCounterValue;
+      QueryPerformanceCounter(&currentCounterValue);
+      const float timeDelta = (float)(currentCounterValue.QuadPart - lastCounterValue.QuadPart) / counterFrequency.QuadPart;
+      lastCounterValue = currentCounterValue;
+
+      frameCallback(frameIndex++, timeDelta);
+    }
+  }
+}

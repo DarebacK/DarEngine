@@ -3,6 +3,8 @@
 #include "Core/Core.hpp"
 #include "Core/Math.hpp"
 
+#include <functional>
+
 class MainWindow
 {
 public:
@@ -26,3 +28,5 @@ private:
   HWND handle = nullptr;
 
 };
+
+void runGameLoop(std::function<void(int64 frameIndex, float timeDelta)> frameCallback);

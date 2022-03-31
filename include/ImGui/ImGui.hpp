@@ -12,7 +12,7 @@ namespace Dar
   {
   public:
 
-    ImGui(void* windowHandle, ID3D11Device* device, ID3D11DeviceContext* device_context);
+    ImGui(void* windowHandle, ID3D11Device* device, ID3D11DeviceContext* deviceContext);
     ImGui(const ImGui& other) = delete;
     ImGui(ImGui&& other) = delete;
     ~ImGui();
