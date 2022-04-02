@@ -14,7 +14,8 @@ public:
   MainWindow(MainWindow&& other) = delete;
   ~MainWindow() = default;
 
-  bool tryInitialize(HINSTANCE instance, const wchar_t* name, WNDPROC wndProc);
+  bool tryInitializeGameStyle(HINSTANCE instance, const wchar_t* name, WNDPROC wndProc);
+  bool tryInitializeEditorStyle(HINSTANCE instance, const wchar_t* name, WNDPROC wndProc);
 
   operator HWND() { return handle; }
 
