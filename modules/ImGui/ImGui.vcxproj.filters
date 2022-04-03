@@ -20,25 +20,25 @@
     <ClCompile Include="source\Dar_ImGui.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="source\external\imgui_1_87\imgui.cpp">
+    <ClCompile Include="source\external\imgui_1_88_docking_wip\imgui.cpp">
       <Filter>Source Files\external</Filter>
     </ClCompile>
-    <ClCompile Include="source\external\imgui_1_87\imgui_demo.cpp">
+    <ClCompile Include="source\external\imgui_1_88_docking_wip\imgui_demo.cpp">
       <Filter>Source Files\external</Filter>
     </ClCompile>
-    <ClCompile Include="source\external\imgui_1_87\imgui_draw.cpp">
+    <ClCompile Include="source\external\imgui_1_88_docking_wip\imgui_draw.cpp">
       <Filter>Source Files\external</Filter>
     </ClCompile>
-    <ClCompile Include="source\external\imgui_1_87\imgui_tables.cpp">
+    <ClCompile Include="source\external\imgui_1_88_docking_wip\imgui_impl_dx11.cpp">
       <Filter>Source Files\external</Filter>
     </ClCompile>
-    <ClCompile Include="source\external\imgui_1_87\imgui_widgets.cpp">
+    <ClCompile Include="source\external\imgui_1_88_docking_wip\imgui_impl_win32.cpp">
       <Filter>Source Files\external</Filter>
     </ClCompile>
-    <ClCompile Include="source\external\imgui_1_87\imgui_impl_dx11.cpp">
+    <ClCompile Include="source\external\imgui_1_88_docking_wip\imgui_tables.cpp">
       <Filter>Source Files\external</Filter>
     </ClCompile>
-    <ClCompile Include="source\external\imgui_1_87\imgui_impl_win32.cpp">
+    <ClCompile Include="source\external\imgui_1_88_docking_wip\imgui_widgets.cpp">
       <Filter>Source Files\external</Filter>
     </ClCompile>
   </ItemGroup>
@@ -46,16 +46,16 @@
     <ClInclude Include="..\..\include\ImGui\ImGui.hpp">
       <Filter>Source Files\include</Filter>
     </ClInclude>
-    <ClInclude Include="source\external\imgui_1_87\imgui_internal.h">
+    <ClInclude Include="source\external\imgui_1_88_docking_wip\imgui_internal.h">
       <Filter>Source Files\external</Filter>
     </ClInclude>
-    <ClInclude Include="source\external\imgui_1_87\imstb_rectpack.h">
+    <ClInclude Include="source\external\imgui_1_88_docking_wip\imstb_rectpack.h">
       <Filter>Source Files\external</Filter>
     </ClInclude>
-    <ClInclude Include="source\external\imgui_1_87\imstb_textedit.h">
+    <ClInclude Include="source\external\imgui_1_88_docking_wip\imstb_textedit.h">
       <Filter>Source Files\external</Filter>
     </ClInclude>
-    <ClInclude Include="source\external\imgui_1_87\imstb_truetype.h">
+    <ClInclude Include="source\external\imgui_1_88_docking_wip\imstb_truetype.h">
       <Filter>Source Files\external</Filter>
     </ClInclude>
   </ItemGroup>
