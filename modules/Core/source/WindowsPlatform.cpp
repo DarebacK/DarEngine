@@ -1,5 +1,7 @@
 #include "Core/WindowsPlatform.h"
 
+#include <Shlobj_core.h>
+
 bool MainWindow::tryInitializeGameStyle(HINSTANCE instance, const wchar_t* name, WNDPROC wndProc)
 {
   WNDCLASS windowClass{};
@@ -135,4 +137,30 @@ void runGameLoop(std::function<void(int64 frameIndex, float timeDelta)> frameCal
       frameCallback(frameIndex++, timeDelta);
     }
   }
+}
+
+bool tryChooseFolderDialog(HWND window, const wchar_t* title, wchar_t* path)
+{
+  BROWSEINFOW info = {};
+  info.hwndOwner = window;
+  info.pidlRoot = NULL;
+  wchar_t displayName[MAX_PATH];
+  info.pszDisplayName = displayName;
+  info.lpszTitle = title;
+  info.ulFlags = BIF_NEWDIALOGSTYLE | BIF_NONEWFOLDERBUTTON;
+  LPITEMIDLIST pidl = SHBrowseForFolder(&info);
+  if (!pidl)
+  {
+    return false;
+  }
+
+  if (!SHGetPathFromIDList(pidl, path))
+  {
+    logError("Failed to get folder path for %ls.", displayName);
+    CoTaskMemFree(pidl);
+    return false;
+  }
+
+  CoTaskMemFree(pidl);
+  return true;
 }

@@ -31,3 +31,5 @@ private:
 };
 
 void runGameLoop(std::function<void(int64 frameIndex, float timeDelta)> frameCallback);
+
+bool tryChooseFolderDialog(HWND window, const wchar_t* title, wchar_t* path);
