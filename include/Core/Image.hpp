@@ -91,6 +91,7 @@ public:
   ~JpegReader();
 
   // returned Image.chromaSubsampling contains the input subsampling. 
+  Image read(const wchar_t* filePath, PixelFormat outputPixelFormat);
   Image read(const byte* jpegData, int64 jpegDataSize, PixelFormat outputPixelFormat);
 
 private:

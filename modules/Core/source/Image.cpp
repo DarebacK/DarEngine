@@ -226,6 +226,17 @@ JpegReader::~JpegReader()
   }
 }
 
+Image JpegReader::read(const wchar_t* filePath, PixelFormat outputPixelFormat)
+{
+  std::vector<byte> colormapJpeg;
+  if (!tryReadEntireFile(filePath, colormapJpeg))
+  {
+    return Image();
+  }
+
+  return read(colormapJpeg.data(), colormapJpeg.size(), outputPixelFormat);
+}
+
 Image JpegReader::read(const byte* jpegData, int64 jpegDataSize, PixelFormat outputPixelFormat)
 {
   if (!decompressor)
