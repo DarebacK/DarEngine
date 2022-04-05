@@ -96,7 +96,7 @@
     </Link>
     <Lib>
       <AdditionalLibraryDirectories>$(ProjectDir)..\..\external\libraries\$(Platform);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>jpeg.lib;turbojpeg.lib;</AdditionalDependencies>
+      <AdditionalDependencies>jpeg.lib;turbojpeg.lib;libwebp.lib;libwebpdemux.lib;libwebpmux.lib;</AdditionalDependencies>
     </Lib>
     <PostBuildEvent>
       <Command>xcopy "$(ProjectDir)..\..\external\binaries" "$(OutDir)" /d /i /y /r</Command>
@@ -125,7 +125,7 @@
     </Link>
     <Lib>
       <AdditionalLibraryDirectories>$(ProjectDir)..\..\external\libraries\$(Platform);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>jpeg.lib;turbojpeg.lib;</AdditionalDependencies>
+      <AdditionalDependencies>jpeg.lib;turbojpeg.lib;libwebp.lib;libwebpdemux.lib;libwebpmux.lib;</AdditionalDependencies>
     </Lib>
     <PostBuildEvent>
       <Command>xcopy "$(ProjectDir)..\..\external\binaries" "$(OutDir)" /d /i /y /r</Command>

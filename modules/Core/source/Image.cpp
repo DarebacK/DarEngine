@@ -6,6 +6,8 @@
 #include <external/lodepng.h>
 #include <external/turbojpeg.h>
 
+#include <external/libwebp/decode.h>
+
 // General -----------------------------------------------------------------------------------------
 
 int8 toChannelCount(PixelFormat pixelFormat)
@@ -58,6 +60,16 @@ void swap(Image& first, Image& second)
   swap(first.height, second.height);
   swap(first.pixelFormat, second.pixelFormat);
   swap(first.chromaSubsampling, second.chromaSubsampling);
+}
+
+int64 Image::getDataSize() const
+{
+  if (!data)
+  {
+    return 0;
+  }
+
+  return width * height * toChannelCount(pixelFormat);
 }
 
 // PNG ---------------------------------------------------------------------------------------------
@@ -321,4 +333,54 @@ bool JpegWriter::tryWrite(const Image& image, int8 quality, const char* fileName
   tjFree(jpegData);
 
   return true;
+}
+
+// WEBP --------------------------------------------------------------------------------------------
+
+Image WebpReader::read(const byte* data, int64 dataSize, PixelFormat outputPixelFormat)
+{
+  int width, height;
+  if (!WebPGetInfo(data, size_t(dataSize), &width, &height))
+  {
+    return Image();
+  }
+
+  int outputStride = width * toChannelCount(outputPixelFormat);
+
+  Image image;
+  image.data = (byte*)malloc(height * outputStride);
+  image.width = width;
+  image.height = height;
+  image.pixelFormat = outputPixelFormat;
+
+  uint8_t* result = nullptr;
+  switch (outputPixelFormat)
+  {
+    case PixelFormat::RGBA:
+      result = WebPDecodeRGBAInto(data, size_t(dataSize), image.data, image.getDataSize(), outputStride);
+      break;
+    case PixelFormat::BGRA:
+      result = WebPDecodeBGRAInto(data, size_t(dataSize), image.data, image.getDataSize(), outputStride);
+      break;
+    case PixelFormat::ARGB:
+      result = WebPDecodeARGBInto(data, size_t(dataSize), image.data, image.getDataSize(), outputStride);
+      break;
+    case PixelFormat::RGB:
+      result = WebPDecodeRGBInto(data, size_t(dataSize), image.data, image.getDataSize(), outputStride);
+      break;
+    case PixelFormat::BGR:
+      result = WebPDecodeBGRInto(data, size_t(dataSize), image.data, image.getDataSize(), outputStride);
+      break;
+    default:
+      logError("Cannot read WebP. Unsupported output pixel format.");
+      return Image();
+  }
+
+  if (!result)
+  {
+    logError("Failed to decode WebP image.");
+    return Image();
+  }
+
+  return image;
 }

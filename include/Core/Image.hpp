@@ -47,6 +47,8 @@ struct Image
 
   friend void swap(Image& first, Image& second);
 
+  int64 getDataSize() const;
+
   byte* data = nullptr; // Feel free to steal this pointer. Free it by calling free() on it. Remember to set it to nullptr.
   int32 width = 0;
   int32 height = 0;
@@ -105,7 +107,7 @@ public:
 
   JpegWriter();
   JpegWriter(const JpegWriter& other) = delete;
-  JpegWriter(const JpegWriter&& other) = delete;
+  JpegWriter(JpegWriter&& other) = delete;
   ~JpegWriter();
 
   /**
@@ -117,4 +119,19 @@ public:
 private:
 
   void* compressor;
+};
+
+// WEBP --------------------------------------------------------------------------------------------
+
+class WebpReader
+{
+public:
+
+  WebpReader() = default;
+  WebpReader(const WebpReader& other) = delete;
+  WebpReader(WebpReader&& other) = delete;
+  ~WebpReader() = default;
+
+  Image read(const byte* data, int64 dataSize, PixelFormat outputPixelFormat);
+
 };
