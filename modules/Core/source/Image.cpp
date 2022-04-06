@@ -352,6 +352,7 @@ Image WebpReader::read(const byte* data, int64 dataSize, PixelFormat outputPixel
   image.width = width;
   image.height = height;
   image.pixelFormat = outputPixelFormat;
+  image.chromaSubsampling = ChromaSubsampling_444;
 
   uint8_t* result = nullptr;
   switch (outputPixelFormat)

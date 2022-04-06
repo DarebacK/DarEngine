@@ -94,8 +94,24 @@ inline uint16 nativeToBigEndian(uint16 value)
     return _byteswap_ushort(value);
 #endif
 }
-
 inline uint16 bigEndianToNative(uint16 value)
+{
+#if BIG_ENDIAN
+  return value;
+#elif COMPILER_MSVC
+  return _byteswap_ushort(value);
+#endif
+}
+
+inline int16 nativeToBigEndian(int16 value)
+{
+#if BIG_ENDIAN
+  return value;
+#elif COMPILER_MSVC
+  return _byteswap_ushort(value);
+#endif
+}
+inline int16 bigEndianToNative(int16 value)
 {
 #if BIG_ENDIAN
   return value;
