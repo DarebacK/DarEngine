@@ -66,10 +66,10 @@ void TaskScheduler::initialize()
   SYSTEM_INFO systemInfo;
   GetSystemInfo(&systemInfo);
   const int workerThreadCount = std::max(int(systemInfo.dwNumberOfProcessors - 1), 1);
-  initialize(workerThreadCount, 1);
+  initialize(workerThreadCount);
 }
 
-void TaskScheduler::initialize(int inThreadCount, int threadAffinitiesOffset)
+void TaskScheduler::initialize(int inThreadCount)
 {
   inThreadCount = std::min(inThreadCount, threadCountMax);
   threads.resize(inThreadCount);
@@ -90,12 +90,6 @@ void TaskScheduler::initialize(int inThreadCount, int threadAffinitiesOffset)
 
     threads[threadIndex] = thread;
     threadContexts[threadIndex] = {this, static_cast<int64>(threadIndex)};
-
-    DWORD_PTR threadAffinityMask = 1ull << (threadIndex + threadAffinitiesOffset);
-    if (SetThreadAffinityMask(thread, threadAffinityMask) == 0)
-    {
-      logWarning("Failed to set thread affinity for worker thread %llu", threadIndex);
-    }
 
     ResumeThread(thread);
   }
@@ -170,6 +164,8 @@ DEFINE_TASK_END
 
 void TaskScheduler::parallelFor(int64 beginValue, int64 endValue, const std::function<void(int64 iterationIndex, int64 threadIndex)>& function)
 {
+  TRACE_SCOPE();
+
   DWORD waitResult = WaitForSingleObject(parallelForFinishedEvent, 0);
   switch (waitResult)
   {
@@ -252,9 +248,18 @@ DWORD TaskScheduler::workerThreadMain(LPVOID parameter)
   TaskScheduler::ThreadContext& threadContext = *static_cast<TaskScheduler::ThreadContext*>(parameter);
   TaskScheduler& taskScheduler = *threadContext.taskScheduler;
 
+  {
+    char threadName[64];
+    sprintf_s(threadName, "TaskSchedulerWorker %lld", threadContext.threadIndex);
+    TRACE_THREAD(threadName);
+  }
+
   while (!taskScheduler.threadsShouldStop)
   {
-    WaitForSingleObject(taskScheduler.threadSemaphore, INFINITE);
+    {
+      TRACE_SCOPE("Wait for work");
+      WaitForSingleObject(taskScheduler.threadSemaphore, INFINITE);
+    }
 
     if (taskScheduler.threadsShouldStop)
     {
@@ -262,6 +267,11 @@ DWORD TaskScheduler::workerThreadMain(LPVOID parameter)
     }
 
     taskScheduler.processAllTasks(threadContext);
+
+    if (taskScheduler.threadsShouldStop)
+    {
+      break;
+    }
   }
 
   return 0;

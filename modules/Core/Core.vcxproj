@@ -13,6 +13,15 @@
   <ItemGroup>
     <ClCompile Include="source\Core.cpp" />
     <ClCompile Include="source\external\lodepng.cpp" />
+    <ClCompile Include="source\external\optick\optick_capi.cpp" />
+    <ClCompile Include="source\external\optick\optick_core.cpp" />
+    <ClCompile Include="source\external\optick\optick_gpu.cpp" />
+    <ClCompile Include="source\external\optick\optick_gpu.d3d12.cpp" />
+    <ClCompile Include="source\external\optick\optick_gpu.vulkan.cpp" />
+    <ClCompile Include="source\external\optick\optick_message.cpp" />
+    <ClCompile Include="source\external\optick\optick_miniz.cpp" />
+    <ClCompile Include="source\external\optick\optick_serialization.cpp" />
+    <ClCompile Include="source\external\optick\optick_server.cpp" />
     <ClCompile Include="source\File.cpp" />
     <ClCompile Include="source\Image.cpp" />
     <ClCompile Include="source\Input.cpp" />
@@ -30,6 +39,22 @@
     <ClInclude Include="..\..\include\Core\String.hpp" />
     <ClInclude Include="..\..\include\Core\Task.hpp" />
     <ClInclude Include="..\..\include\Core\WindowsPlatform.h" />
+    <ClInclude Include="..\..\include\external\optick\optick.config.h" />
+    <ClInclude Include="..\..\include\external\optick\optick.h" />
+    <ClInclude Include="source\external\optick\optick_capi.h" />
+    <ClInclude Include="source\external\optick\optick_common.h" />
+    <ClInclude Include="source\external\optick\optick_core.freebsd.h" />
+    <ClInclude Include="source\external\optick\optick_core.h" />
+    <ClInclude Include="source\external\optick\optick_core.linux.h" />
+    <ClInclude Include="source\external\optick\optick_core.macos.h" />
+    <ClInclude Include="source\external\optick\optick_core.platform.h" />
+    <ClInclude Include="source\external\optick\optick_core.win.h" />
+    <ClInclude Include="source\external\optick\optick_gpu.h" />
+    <ClInclude Include="source\external\optick\optick_memory.h" />
+    <ClInclude Include="source\external\optick\optick_message.h" />
+    <ClInclude Include="source\external\optick\optick_miniz.h" />
+    <ClInclude Include="source\external\optick\optick_serialization.h" />
+    <ClInclude Include="source\external\optick\optick_server.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\include\Core\Input.inl" />

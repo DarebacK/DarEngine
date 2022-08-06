@@ -4,6 +4,8 @@
 
 bool MainWindow::tryInitializeGameStyle(HINSTANCE instance, const wchar_t* name, WNDPROC wndProc)
 {
+  TRACE_SCOPE();
+
   WNDCLASS windowClass{};
   windowClass.lpfnWndProc = wndProc;
   windowClass.hInstance = instance;
@@ -134,6 +136,7 @@ void runGameLoop(std::function<void(int64 frameIndex, float timeDelta)> frameCal
       const float timeDelta = (float)(currentCounterValue.QuadPart - lastCounterValue.QuadPart) / counterFrequency.QuadPart;
       lastCounterValue = currentCounterValue;
 
+      TRACE_FRAME();
       frameCallback(frameIndex++, timeDelta);
     }
   }

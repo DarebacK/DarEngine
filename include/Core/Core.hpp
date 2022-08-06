@@ -125,3 +125,10 @@ inline int16 bigEndianToNative(int16 value)
 
 #define WSTRINGIFY(a) L ## #a
 #define WSTRINGIFY_DEFINE(a) WSTRINGIFY(a)
+
+#include "external/optick/optick.h"
+#define TRACE_FRAME() OPTICK_FRAME("MainThread")
+#define TRACE_SCOPE(...) OPTICK_EVENT(__VA_ARGS__)
+#define TRACE_THREAD(name) OPTICK_THREAD(name)
+#define TRACE_START_CAPTURE() OPTICK_START_CAPTURE();
+#define TRACE_STOP_CAPTURE(...) OPTICK_STOP_CAPTURE(); OPTICK_SAVE_CAPTURE(__VA_ARGS__);

@@ -22,9 +22,9 @@ public:
   TaskScheduler(TaskScheduler&& other) = delete;
   ~TaskScheduler();
 
-  // Initializes with threadCount == max(processorCount - 1, 1) and threadAffinitiesOffset == 1;
+  // Initializes with threadCount == max(processorCount - 1, 1);
   void initialize();
-  void initialize(int threadCount, int threadAffinitiesOffset);
+  void initialize(int threadCount);
 
   void schedule(TaskFunction task, void* taskData);
 
@@ -75,6 +75,7 @@ extern TaskScheduler taskScheduler;
 #define DEFINE_TASK_BEGIN(taskName, TaskDataType) \
   void taskName (void* taskParameter, const TaskScheduler::ThreadContext& threadContext) \
     { \
+      TRACE_SCOPE(); \
       TaskDataType& taskData = *static_cast<TaskDataType*>(taskParameter);
 
 #define DEFINE_TASK_END \

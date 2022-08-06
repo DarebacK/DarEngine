@@ -15,6 +15,15 @@
     <Filter Include="Source Files\external">
       <UniqueIdentifier>{22223571-c3ef-45b0-bc54-32294d307d8c}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\external\optick">
+      <UniqueIdentifier>{2f39c875-810c-4061-8423-c11d43727c9c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\include\external">
+      <UniqueIdentifier>{bb8e27bb-a0a6-40c1-a02b-c1de42ae2dab}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\include\external\optick">
+      <UniqueIdentifier>{9677c448-338b-486a-8e65-ea47ec7485a6}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="source\Core.cpp">
@@ -44,6 +53,33 @@
     <ClCompile Include="source\WindowsPlatform.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="source\external\optick\optick_capi.cpp">
+      <Filter>Source Files\external\optick</Filter>
+    </ClCompile>
+    <ClCompile Include="source\external\optick\optick_core.cpp">
+      <Filter>Source Files\external\optick</Filter>
+    </ClCompile>
+    <ClCompile Include="source\external\optick\optick_gpu.cpp">
+      <Filter>Source Files\external\optick</Filter>
+    </ClCompile>
+    <ClCompile Include="source\external\optick\optick_gpu.d3d12.cpp">
+      <Filter>Source Files\external\optick</Filter>
+    </ClCompile>
+    <ClCompile Include="source\external\optick\optick_gpu.vulkan.cpp">
+      <Filter>Source Files\external\optick</Filter>
+    </ClCompile>
+    <ClCompile Include="source\external\optick\optick_message.cpp">
+      <Filter>Source Files\external\optick</Filter>
+    </ClCompile>
+    <ClCompile Include="source\external\optick\optick_miniz.cpp">
+      <Filter>Source Files\external\optick</Filter>
+    </ClCompile>
+    <ClCompile Include="source\external\optick\optick_serialization.cpp">
+      <Filter>Source Files\external\optick</Filter>
+    </ClCompile>
+    <ClCompile Include="source\external\optick\optick_server.cpp">
+      <Filter>Source Files\external\optick</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\include\Core\Core.hpp">
@@ -69,6 +105,54 @@
     </ClInclude>
     <ClInclude Include="..\..\include\Core\WindowsPlatform.h">
       <Filter>Source Files\include</Filter>
+    </ClInclude>
+    <ClInclude Include="source\external\optick\optick_capi.h">
+      <Filter>Source Files\external\optick</Filter>
+    </ClInclude>
+    <ClInclude Include="source\external\optick\optick_common.h">
+      <Filter>Source Files\external\optick</Filter>
+    </ClInclude>
+    <ClInclude Include="source\external\optick\optick_core.freebsd.h">
+      <Filter>Source Files\external\optick</Filter>
+    </ClInclude>
+    <ClInclude Include="source\external\optick\optick_core.h">
+      <Filter>Source Files\external\optick</Filter>
+    </ClInclude>
+    <ClInclude Include="source\external\optick\optick_core.linux.h">
+      <Filter>Source Files\external\optick</Filter>
+    </ClInclude>
+    <ClInclude Include="source\external\optick\optick_core.macos.h">
+      <Filter>Source Files\external\optick</Filter>
+    </ClInclude>
+    <ClInclude Include="source\external\optick\optick_core.platform.h">
+      <Filter>Source Files\external\optick</Filter>
+    </ClInclude>
+    <ClInclude Include="source\external\optick\optick_core.win.h">
+      <Filter>Source Files\external\optick</Filter>
+    </ClInclude>
+    <ClInclude Include="source\external\optick\optick_gpu.h">
+      <Filter>Source Files\external\optick</Filter>
+    </ClInclude>
+    <ClInclude Include="source\external\optick\optick_memory.h">
+      <Filter>Source Files\external\optick</Filter>
+    </ClInclude>
+    <ClInclude Include="source\external\optick\optick_message.h">
+      <Filter>Source Files\external\optick</Filter>
+    </ClInclude>
+    <ClInclude Include="source\external\optick\optick_miniz.h">
+      <Filter>Source Files\external\optick</Filter>
+    </ClInclude>
+    <ClInclude Include="source\external\optick\optick_serialization.h">
+      <Filter>Source Files\external\optick</Filter>
+    </ClInclude>
+    <ClInclude Include="source\external\optick\optick_server.h">
+      <Filter>Source Files\external\optick</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\external\optick\optick.config.h">
+      <Filter>Source Files\include\external\optick</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\external\optick\optick.h">
+      <Filter>Source Files\include\external\optick</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
