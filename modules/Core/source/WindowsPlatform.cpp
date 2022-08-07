@@ -49,6 +49,8 @@ bool MainWindow::tryInitializeGameStyle(HINSTANCE instance, const wchar_t* name,
 
 bool MainWindow::tryInitializeEditorStyle(HINSTANCE instance, const wchar_t* name, WNDPROC wndProc)
 {
+  TRACE_SCOPE();
+
   WNDCLASS windowClass{};
   windowClass.lpfnWndProc = wndProc;
   windowClass.hInstance = instance;
@@ -95,16 +97,20 @@ bool MainWindow::tryInitializeEditorStyle(HINSTANCE instance, const wchar_t* nam
 
 void MainWindow::show()
 {
+  TRACE_SCOPE();
   ShowWindow(handle, SW_SHOWMAXIMIZED);
 }
 
 void MainWindow::showErrorMessageBox(const wchar_t* text, const wchar_t* caption)
 {
+  TRACE_SCOPE();
   MessageBox(handle , text, caption, MB_OK | MB_ICONERROR);
 }
 
 Vec2i MainWindow::getCursorPosition()
 {
+  TRACE_SCOPE();
+
   Vec2i mousePosition;
   if (!GetCursorPos((LPPOINT)&mousePosition)) {
     return {};
@@ -144,6 +150,8 @@ void runGameLoop(std::function<void(int64 frameIndex, float timeDelta)> frameCal
 
 bool tryChooseFolderDialog(HWND window, const wchar_t* title, wchar_t* path)
 {
+  TRACE_SCOPE();
+
   BROWSEINFOW info = {};
   info.hwndOwner = window;
   info.pidlRoot = NULL;

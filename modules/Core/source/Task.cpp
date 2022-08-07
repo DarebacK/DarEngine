@@ -257,7 +257,7 @@ DWORD TaskScheduler::workerThreadMain(LPVOID parameter)
   while (!taskScheduler.threadsShouldStop)
   {
     {
-      TRACE_SCOPE("Wait for work");
+      TRACE_SCOPE("waitForWork");
       WaitForSingleObject(taskScheduler.threadSemaphore, INFINITE);
     }
 
@@ -267,11 +267,6 @@ DWORD TaskScheduler::workerThreadMain(LPVOID parameter)
     }
 
     taskScheduler.processAllTasks(threadContext);
-
-    if (taskScheduler.threadsShouldStop)
-    {
-      break;
-    }
   }
 
   return 0;
@@ -295,7 +290,7 @@ void TaskScheduler::processAllTasks(const ThreadContext& threadContext)
   while (true)
   {
     int64 taskIndexToRead = queue.taskIndexToRead.load(std::memory_order::memory_order_relaxed);
-    const int64 taskIndexToWrite = queue.taskIndexToWrite.load(std::memory_order::memory_order_relaxed);
+    const int64 taskIndexToWrite = queue.taskIndexToWrite.load(std::memory_order::memory_order_acquire);
 
     if (taskIndexToRead == taskIndexToWrite)
     {
