@@ -17,52 +17,21 @@ TaskScheduler::TaskScheduler()
 
 TaskScheduler::~TaskScheduler()
 {
-  threadsShouldStop = true;
-
-  if (threadSemaphore)
+  if (!isInitialized())
   {
-    while (ReleaseSemaphore(threadSemaphore, 1, NULL)); // wake up worker threads so they can exit.
+    return;
   }
 
-  for (int threadIndex = 0; threadIndex < threads.size(); ++threadIndex)
-  {
-    void* thread = threads[threadIndex];
-    if (!thread)
-    {
-      continue;
-    }
-
-    constexpr DWORD waitTimeoutMs = 1000;
-    DWORD waitResult = WaitForSingleObject(thread, waitTimeoutMs);
-    switch (waitResult)
-    {
-    case WAIT_TIMEOUT:
-      logError("Thread %d index %d stop timeout %d ms.", GetThreadId(thread), threadIndex, waitTimeoutMs);
-      break;
-
-    case WAIT_FAILED:
-      logError("Thread %d index %d stop failed.", GetThreadId(thread), threadIndex);
-      break;
-
-    default:
-      CloseHandle(thread);
-      break;
-    }
-  }
-
-  if (parallelForFinishedEvent)
-  {
-    CloseHandle(parallelForFinishedEvent);
-  }
-
-  if (threadSemaphore)
-  {
-    CloseHandle(threadSemaphore);
-  }
+  deinitialize();
 }
 
 void TaskScheduler::initialize()
 {
+  if (isInitialized())
+  {
+    return;
+  }
+
   SYSTEM_INFO systemInfo;
   GetSystemInfo(&systemInfo);
   const int workerThreadCount = std::max(int(systemInfo.dwNumberOfProcessors - 1), 1);
@@ -71,11 +40,16 @@ void TaskScheduler::initialize()
 
 void TaskScheduler::initialize(int inThreadCount)
 {
+  if (isInitialized())
+  {
+    return;
+  }
+
   inThreadCount = std::min(inThreadCount, threadCountMax);
   threads.resize(inThreadCount);
   threadContexts.resize(inThreadCount);
 
-  threadSemaphore = CreateSemaphore(NULL, 0, inThreadCount, NULL);
+  queue.semaphore = CreateSemaphore(NULL, 0, inThreadCount, NULL);
 
   for (uint64 threadIndex = 0; threadIndex < inThreadCount; ++threadIndex)
   {
@@ -92,6 +66,56 @@ void TaskScheduler::initialize(int inThreadCount)
     threadContexts[threadIndex] = {this, static_cast<int64>(threadIndex)};
 
     ResumeThread(thread);
+  }
+}
+
+void TaskScheduler::deinitialize()
+{
+  threadsShouldStop = true;
+
+  if (queue.semaphore)
+  {
+    while (ReleaseSemaphore(queue.semaphore, 1, NULL)); // wake up worker threads so they can exit.
+  }
+
+  for (int threadIndex = 0; threadIndex < threads.size(); ++threadIndex)
+  {
+    void* thread = threads[threadIndex];
+    if (!thread)
+    {
+      continue;
+    }
+
+    constexpr DWORD waitTimeoutMs = 1000;
+    DWORD waitResult = WaitForSingleObject(thread, waitTimeoutMs);
+    switch (waitResult)
+    {
+      case WAIT_TIMEOUT:
+        logError("Thread %d index %d stop timeout %d ms.", GetThreadId(thread), threadIndex, waitTimeoutMs);
+        break;
+
+      case WAIT_FAILED:
+        logError("Thread %d index %d stop failed.", GetThreadId(thread), threadIndex);
+        break;
+
+      default:
+        CloseHandle(thread);
+        break;
+    }
+  }
+  threads.clear();
+  threadContexts.clear();
+
+  if (parallelForFinishedEvent)
+  {
+    CloseHandle(parallelForFinishedEvent);
+    parallelForFinishedEvent = nullptr;
+  }
+
+  if (queue.semaphore)
+  {
+    CloseHandle(queue.semaphore);
+    queue.semaphore = nullptr;
   }
 }
 
@@ -119,7 +143,7 @@ void TaskScheduler::schedule(TaskFunction task, void* taskData)
 
   queue.taskIndexToWrite.store(nextTaskIndexToWrite, std::memory_order_release);
 
-  ReleaseSemaphore(threadSemaphore, 1, NULL);
+  ReleaseSemaphore(queue.semaphore, 1, NULL);
 }
 
 struct ParallelForTaskData
@@ -258,7 +282,7 @@ DWORD TaskScheduler::workerThreadMain(LPVOID parameter)
   {
     {
       TRACE_SCOPE("waitForWork");
-      WaitForSingleObject(taskScheduler.threadSemaphore, INFINITE);
+      WaitForSingleObject(taskScheduler.queue.semaphore, INFINITE);
     }
 
     if (taskScheduler.threadsShouldStop)
@@ -270,6 +294,11 @@ DWORD TaskScheduler::workerThreadMain(LPVOID parameter)
   }
 
   return 0;
+}
+
+bool TaskScheduler::isInitialized() const
+{
+  return queue.semaphore != nullptr;
 }
 
 bool TaskScheduler::taskIsBeingConsumed(int64 taskIndex) const

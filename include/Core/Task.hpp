@@ -25,6 +25,7 @@ public:
   // Initializes with threadCount == max(processorCount - 1, 1);
   void initialize();
   void initialize(int threadCount);
+  void deinitialize();
 
   void schedule(TaskFunction task, void* taskData);
 
@@ -41,36 +42,52 @@ private:
     void* data;
   };
 
-  struct TaskQueue
+  struct alignas(CACHE_LINE_SIZE) TaskQueue
   {
-    // Only 255 and not 256 because index 255 is reserved for invalid state. Also this way fits neatly into cacheline boundaries.
+    // Only 255 and not 256 because index 255 is reserved for invalid state.
     Task tasks[255];
+    void* semaphore = nullptr;
+    byte padding1[8];
+
+    // Keep those shared variables on separate cache lines to avoid false sharing.
     std::atomic<int64> taskIndexToRead = 0;
+    byte padding2[CACHE_LINE_SIZE - sizeof(int64)];
+
     std::atomic<int64> taskIndexToWrite = 0;
+    byte padding3[CACHE_LINE_SIZE - sizeof(int64)];
   } queue;
 
   static constexpr int threadCountMax = 64;
   static constexpr uint8 invalidTaskIndex = 255;
   volatile uint8 threadCurrentTaskIndices[threadCountMax]; // fits into 1 cacheline.
 
+  std::vector<void*> threads;
+  std::vector<ThreadContext> threadContexts;
+
   void* parallelForFinishedEvent;
 
-  std::vector<void*> threads;
   volatile bool threadsShouldStop = false;
-
-  std::vector<ThreadContext> threadContexts;
-  
-  void* threadSemaphore = nullptr;
 
 private:
 
   static unsigned long workerThreadMain(void* parameter);
+
+  bool isInitialized() const;
 
   bool taskIsBeingConsumed(int64 taskIndex) const;
   void processAllTasks(const ThreadContext& threadContext);
 };
 
 extern TaskScheduler taskScheduler;
+
+class TaskSchedulerGuard
+{
+public:
+  TaskSchedulerGuard() { taskScheduler.initialize(); }
+  TaskSchedulerGuard(const TaskSchedulerGuard& other) = delete;
+  TaskSchedulerGuard(TaskSchedulerGuard&& other) = delete;
+  ~TaskSchedulerGuard() { taskScheduler.deinitialize(); }
+};
 
 #define DEFINE_TASK_BEGIN(taskName, TaskDataType) \
   void taskName (void* taskParameter, const TaskScheduler::ThreadContext& threadContext) \
