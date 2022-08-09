@@ -9,10 +9,6 @@ TaskScheduler taskScheduler;
 TaskScheduler::TaskScheduler()
   : parallelForFinishedEvent(CreateEvent(NULL, true, true, NULL))
 {
-  for (int i = 0; i < arrayLength(threadCurrentTaskIndices); ++i)
-  {
-    threadCurrentTaskIndices[i] = invalidTaskIndex;
-  }
 }
 
 TaskScheduler::~TaskScheduler()
@@ -130,12 +126,6 @@ void TaskScheduler::schedule(TaskFunction task, void* taskData)
   while (nextTaskIndexToWrite == queue.taskIndexToRead.load(std::memory_order::memory_order_relaxed) && spinCount++ < maxSpinCount)
   {
     logWarning("Cannot write new task with index %lld as the queue is full.", taskIndexToWrite);
-  }
-
-  spinCount = 0;
-  while (taskIsBeingConsumed(taskIndexToWrite) && spinCount++ < maxSpinCount)
-  {
-    logWarning("Cannot write new task with index %lld as it's still being consumed.", taskIndexToWrite);
   }
 
   queue.tasks[queue.taskIndexToWrite].function = task;
@@ -301,19 +291,6 @@ bool TaskScheduler::isInitialized() const
   return queue.semaphore != nullptr;
 }
 
-bool TaskScheduler::taskIsBeingConsumed(int64 taskIndex) const
-{
-  for (size_t threadIndex = 0; threadIndex < threads.size(); ++threadIndex)
-  {
-    if (threadCurrentTaskIndices[threadIndex] == taskIndex)
-    {
-      return true;
-    }
-  }
-
-  return false;
-}
-
 void TaskScheduler::processAllTasks(const ThreadContext& threadContext)
 {
   while (true)
@@ -326,15 +303,11 @@ void TaskScheduler::processAllTasks(const ThreadContext& threadContext)
       return;
     }
 
+    const Task task = queue.tasks[taskIndexToRead];
     const int64 nextTaskIndexToRead = (taskIndexToRead + 1) % arrayLength(queue.tasks);
     if (queue.taskIndexToRead.compare_exchange_strong(taskIndexToRead, nextTaskIndexToRead))
     {
-      threadCurrentTaskIndices[threadContext.threadIndex] = static_cast<uint8>(taskIndexToRead);
-
-      const Task task = queue.tasks[taskIndexToRead];
       task.function(task.data, threadContext);
-
-      threadCurrentTaskIndices[threadContext.threadIndex] = invalidTaskIndex;
     }
   }
 }

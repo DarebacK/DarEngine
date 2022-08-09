@@ -49,17 +49,19 @@ private:
     void* semaphore = nullptr;
     byte padding1[8];
 
+    // TODO: producers and consumers both read those two, maybe cache the opposite number?
     // Keep those shared variables on separate cache lines to avoid false sharing.
     std::atomic<int64> taskIndexToRead = 0;
-    byte padding2[CACHE_LINE_SIZE - sizeof(int64)];
+    volatile int64 cachedTaskIndexToWrite = 0;
+    byte padding2[CACHE_LINE_SIZE - 2*sizeof(int64)];
 
     std::atomic<int64> taskIndexToWrite = 0;
-    byte padding3[CACHE_LINE_SIZE - sizeof(int64)];
+    volatile int64 cachedTaskIndexToRead = 0;
+    byte padding3[CACHE_LINE_SIZE - 2*sizeof(int64)];
   } queue;
 
   static constexpr int threadCountMax = 64;
   static constexpr uint8 invalidTaskIndex = 255;
-  volatile uint8 threadCurrentTaskIndices[threadCountMax]; // fits into 1 cacheline.
 
   std::vector<void*> threads;
   std::vector<ThreadContext> threadContexts;
@@ -74,7 +76,6 @@ private:
 
   bool isInitialized() const;
 
-  bool taskIsBeingConsumed(int64 taskIndex) const;
   void processAllTasks(const ThreadContext& threadContext);
 };
 
