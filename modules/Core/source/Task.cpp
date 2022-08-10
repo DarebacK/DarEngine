@@ -121,11 +121,20 @@ void TaskScheduler::schedule(TaskFunction task, void* taskData)
   // TODO: allow multiple producers?
   const int64 nextTaskIndexToWrite = (taskIndexToWrite + 1) % arrayLength(queue.tasks);
 
-  int spinCount = 0;
-  constexpr int maxSpinCount = 100;
-  while (nextTaskIndexToWrite == queue.taskIndexToRead.load(std::memory_order::memory_order_relaxed) && spinCount++ < maxSpinCount)
+  if (nextTaskIndexToWrite == queue.cachedTaskIndexToRead)
   {
-    logWarning("Cannot write new task with index %lld as the queue is full.", taskIndexToWrite);
+    queue.cachedTaskIndexToRead = queue.taskIndexToRead.load(std::memory_order::memory_order_relaxed);
+    if (nextTaskIndexToWrite == queue.cachedTaskIndexToRead)
+    {
+      int spinCount = 0;
+      constexpr int maxSpinCount = 1000;
+      do
+      {
+        queue.cachedTaskIndexToRead = queue.taskIndexToRead.load(std::memory_order::memory_order_relaxed);
+
+        logWarning("Cannot write new task with index %lld as the queue is full.", taskIndexToWrite);
+      } while (nextTaskIndexToWrite == queue.cachedTaskIndexToRead && spinCount++ < maxSpinCount);
+    }
   }
 
   queue.tasks[queue.taskIndexToWrite].function = task;
@@ -296,11 +305,14 @@ void TaskScheduler::processAllTasks(const ThreadContext& threadContext)
   while (true)
   {
     int64 taskIndexToRead = queue.taskIndexToRead.load(std::memory_order::memory_order_relaxed);
-    const int64 taskIndexToWrite = queue.taskIndexToWrite.load(std::memory_order::memory_order_acquire);
 
-    if (taskIndexToRead == taskIndexToWrite)
+    if (taskIndexToRead == queue.cachedTaskIndexToWrite)
     {
-      return;
+      queue.cachedTaskIndexToWrite = queue.taskIndexToWrite.load(std::memory_order::memory_order_acquire);
+      if (taskIndexToRead == queue.cachedTaskIndexToWrite)
+      {
+        return;
+      }
     }
 
     const Task task = queue.tasks[taskIndexToRead];

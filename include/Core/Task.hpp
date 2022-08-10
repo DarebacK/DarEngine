@@ -42,20 +42,20 @@ private:
     void* data;
   };
 
-  struct alignas(CACHE_LINE_SIZE) TaskQueue
+  // TODO: Maybe separate to a templated independent SPMC queue?
+  struct TaskQueue
   {
     // Only 255 and not 256 because index 255 is reserved for invalid state.
     Task tasks[255];
     void* semaphore = nullptr;
     byte padding1[8];
 
-    // TODO: producers and consumers both read those two, maybe cache the opposite number?
     // Keep those shared variables on separate cache lines to avoid false sharing.
-    std::atomic<int64> taskIndexToRead = 0;
+    alignas(CACHE_LINE_SIZE) std::atomic<int64> taskIndexToRead = 0;
     volatile int64 cachedTaskIndexToWrite = 0;
     byte padding2[CACHE_LINE_SIZE - 2*sizeof(int64)];
 
-    std::atomic<int64> taskIndexToWrite = 0;
+    alignas(CACHE_LINE_SIZE) std::atomic<int64> taskIndexToWrite = 0;
     volatile int64 cachedTaskIndexToRead = 0;
     byte padding3[CACHE_LINE_SIZE - 2*sizeof(int64)];
   } queue;
