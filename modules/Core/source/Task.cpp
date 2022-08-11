@@ -272,6 +272,8 @@ void TaskScheduler::parallelFor(int64 beginValue, int64 endValue, const std::fun
 
 void TaskScheduler::processMainTasks()
 {
+  TRACE_SCOPE();
+
   ThreadContext context;
   context.threadIndex = 0;
 

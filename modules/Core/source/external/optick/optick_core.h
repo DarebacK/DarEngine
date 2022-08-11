@@ -333,6 +333,8 @@ struct ThreadEntry
 	bool isAlive;
 
 	ThreadEntry(const ThreadDescription& desc, EventStorage** tls) : description(desc), threadTLS(tls), isAlive(true) {}
+	// edit(Dareback): Fixes crash when stopping capture. See https://github.com/bombomby/optick/issues/120
+	~ThreadEntry() { if ((*threadTLS) != nullptr) *threadTLS = nullptr; }
 	void Activate(Mode::Type mode);
 	void Sort();
 };

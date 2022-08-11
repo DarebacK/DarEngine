@@ -126,6 +126,7 @@ inline int16 bigEndianToNative(int16 value)
 #define WSTRINGIFY(a) L ## #a
 #define WSTRINGIFY_DEFINE(a) WSTRINGIFY(a)
 
+// TODO: trace only in a new Profile build configuration
 #include "external/optick/optick.h"
 #define TRACE_FRAME() OPTICK_FRAME("MainThread")
 #define TRACE_SCOPE(...) OPTICK_EVENT(__VA_ARGS__)

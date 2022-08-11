@@ -2,13 +2,32 @@
 
 #include "Core/File.hpp"
 
+AssetManager assetManager;
+
 AssetManager::~AssetManager()
 {
   threadShouldStop = true;
 
   if (assetThread)
   {
-    CloseHandle(assetThread);
+    SetEvent(newAsyncLoadRequestEvent);
+
+    constexpr DWORD waitTimeoutMs = 1000;
+    DWORD waitResult = WaitForSingleObject(assetThread, waitTimeoutMs);
+    switch (waitResult)
+    {
+      case WAIT_TIMEOUT:
+        logError("AssetThread %d stop timeout %d ms.", GetThreadId(assetThread), waitTimeoutMs);
+        break;
+
+      case WAIT_FAILED:
+        logError("AssetThread %d stop failed.", GetThreadId(assetThread));
+        break;
+
+      default:
+        CloseHandle(assetThread);
+        break;
+    }
   }
 
   if (newAsyncLoadRequestEvent)
