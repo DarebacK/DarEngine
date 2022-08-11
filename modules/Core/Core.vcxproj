@@ -11,6 +11,8 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="source\Asset.cpp" />
+    <ClCompile Include="source\Concurrency.cpp" />
     <ClCompile Include="source\Core.cpp" />
     <ClCompile Include="source\external\lodepng.cpp" />
     <ClCompile Include="source\external\optick\optick_capi.cpp" />
@@ -31,6 +33,8 @@
     <ClCompile Include="source\WindowsPlatform.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\include\Core\Asset.hpp" />
+    <ClInclude Include="..\..\include\Core\Concurrency.hpp" />
     <ClInclude Include="..\..\include\Core\Core.hpp" />
     <ClInclude Include="..\..\include\Core\File.hpp" />
     <ClInclude Include="..\..\include\Core\Image.hpp" />

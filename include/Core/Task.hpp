@@ -4,18 +4,12 @@
 #include <functional>
 
 #include "Core/Core.hpp"
+#include "Core/Concurrency.hpp"
 
 // Schedules tasks to its worker threads. Each thread is assigned its affinity to one core.
 class TaskScheduler
 {
 public:
-
-  struct ThreadContext
-  {
-    TaskScheduler* taskScheduler;
-    int64 threadIndex;
-  };
-  using TaskFunction = void (*)(void* taskParameter, const ThreadContext& threadContext);
 
   TaskScheduler();
   TaskScheduler(const TaskScheduler& other) = delete;
@@ -27,12 +21,21 @@ public:
   void initialize(int threadCount);
   void deinitialize();
 
-  void schedule(TaskFunction task, void* taskData);
+  struct ThreadContext
+  {
+    int64 threadIndex;
+  };
+  using TaskFunction = void (*)(void* taskParameter, const ThreadContext& threadContext);
+  void scheduleToWorker(TaskFunction task, void* taskData);
+  void scheduleToMain(TaskFunction task, void* taskData);
 
   // endValue means 1 past end
   void parallelFor(int64 beginValue, int64 endValue, const std::function<void(int64 iterationIndex, int64 threadIndex)>& function);
 
-  int64 getThreadCount() { return static_cast<int64>(threads.size()); }
+  // Process tasks meant for the main thread.
+  void processMainTasks();
+
+  int64 getWorkerCount() { return static_cast<int64>(threads.size()); }
 
 private:
 
@@ -58,7 +61,9 @@ private:
     alignas(CACHE_LINE_SIZE) std::atomic<int64> taskIndexToWrite = 0;
     volatile int64 cachedTaskIndexToRead = 0;
     byte padding3[CACHE_LINE_SIZE - 2*sizeof(int64)];
-  } queue;
+  } workerQueue;
+
+  MPSCStaticQueue<Task, 256> mainTaskQueue;
 
   static constexpr int threadCountMax = 64;
   static constexpr uint8 invalidTaskIndex = 255;

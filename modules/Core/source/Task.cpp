@@ -45,7 +45,7 @@ void TaskScheduler::initialize(int inThreadCount)
   threads.resize(inThreadCount);
   threadContexts.resize(inThreadCount);
 
-  queue.semaphore = CreateSemaphore(NULL, 0, inThreadCount, NULL);
+  workerQueue.semaphore = CreateSemaphore(NULL, 0, inThreadCount, NULL);
 
   for (uint64 threadIndex = 0; threadIndex < inThreadCount; ++threadIndex)
   {
@@ -59,7 +59,7 @@ void TaskScheduler::initialize(int inThreadCount)
     }
 
     threads[threadIndex] = thread;
-    threadContexts[threadIndex] = {this, static_cast<int64>(threadIndex)};
+    threadContexts[threadIndex] = {static_cast<int64>(threadIndex)};
 
     ResumeThread(thread);
   }
@@ -69,9 +69,9 @@ void TaskScheduler::deinitialize()
 {
   threadsShouldStop = true;
 
-  if (queue.semaphore)
+  if (workerQueue.semaphore)
   {
-    while (ReleaseSemaphore(queue.semaphore, 1, NULL)); // wake up worker threads so they can exit.
+    while (ReleaseSemaphore(workerQueue.semaphore, 1, NULL)); // wake up worker threads so they can exit.
   }
 
   for (int threadIndex = 0; threadIndex < threads.size(); ++threadIndex)
@@ -108,41 +108,46 @@ void TaskScheduler::deinitialize()
     parallelForFinishedEvent = nullptr;
   }
 
-  if (queue.semaphore)
+  if (workerQueue.semaphore)
   {
-    CloseHandle(queue.semaphore);
-    queue.semaphore = nullptr;
+    CloseHandle(workerQueue.semaphore);
+    workerQueue.semaphore = nullptr;
   }
 }
 
-void TaskScheduler::schedule(TaskFunction task, void* taskData)
+void TaskScheduler::scheduleToWorker(TaskFunction task, void* taskData)
 {
-  const int64 taskIndexToWrite = queue.taskIndexToWrite.load(std::memory_order::memory_order_relaxed);
+  const int64 taskIndexToWrite = workerQueue.taskIndexToWrite.load(std::memory_order::memory_order_relaxed);
   // TODO: allow multiple producers?
-  const int64 nextTaskIndexToWrite = (taskIndexToWrite + 1) % arrayLength(queue.tasks);
+  const int64 nextTaskIndexToWrite = (taskIndexToWrite + 1) % arrayLength(workerQueue.tasks);
 
-  if (nextTaskIndexToWrite == queue.cachedTaskIndexToRead)
+  if (nextTaskIndexToWrite == workerQueue.cachedTaskIndexToRead)
   {
-    queue.cachedTaskIndexToRead = queue.taskIndexToRead.load(std::memory_order::memory_order_relaxed);
-    if (nextTaskIndexToWrite == queue.cachedTaskIndexToRead)
+    workerQueue.cachedTaskIndexToRead = workerQueue.taskIndexToRead.load(std::memory_order::memory_order_relaxed);
+    if (nextTaskIndexToWrite == workerQueue.cachedTaskIndexToRead)
     {
       int spinCount = 0;
       constexpr int maxSpinCount = 1000;
       do
       {
-        queue.cachedTaskIndexToRead = queue.taskIndexToRead.load(std::memory_order::memory_order_relaxed);
+        workerQueue.cachedTaskIndexToRead = workerQueue.taskIndexToRead.load(std::memory_order::memory_order_relaxed);
 
         logWarning("Cannot write new task with index %lld as the queue is full.", taskIndexToWrite);
-      } while (nextTaskIndexToWrite == queue.cachedTaskIndexToRead && spinCount++ < maxSpinCount);
+      } while (nextTaskIndexToWrite == workerQueue.cachedTaskIndexToRead && spinCount++ < maxSpinCount);
     }
   }
 
-  queue.tasks[queue.taskIndexToWrite].function = task;
-  queue.tasks[queue.taskIndexToWrite].data = taskData;
+  workerQueue.tasks[workerQueue.taskIndexToWrite].function = task;
+  workerQueue.tasks[workerQueue.taskIndexToWrite].data = taskData;
 
-  queue.taskIndexToWrite.store(nextTaskIndexToWrite, std::memory_order_release);
+  workerQueue.taskIndexToWrite.store(nextTaskIndexToWrite, std::memory_order_release);
 
-  ReleaseSemaphore(queue.semaphore, 1, NULL);
+  ReleaseSemaphore(workerQueue.semaphore, 1, NULL);
+}
+
+void TaskScheduler::scheduleToMain(TaskFunction task, void* taskData)
+{
+  mainTaskQueue.enqueue(Task{ task, taskData });
 }
 
 struct ParallelForTaskData
@@ -218,7 +223,7 @@ void TaskScheduler::parallelFor(int64 beginValue, int64 endValue, const std::fun
     taskData = new ParallelForTaskData{ beginValueForWorkerThreads, endValue, function, iterationCountToDoInCurrentThread, totalThreadCount, parallelForFinishedEvent };
     for(size_t i = 0; i < threads.size(); ++i)
     {
-      schedule(&parallelForTask, taskData);
+      scheduleToWorker(&parallelForTask, taskData);
     }
   }
   else
@@ -263,13 +268,23 @@ void TaskScheduler::parallelFor(int64 beginValue, int64 endValue, const std::fun
       }
     }
   }
+}
 
+void TaskScheduler::processMainTasks()
+{
+  ThreadContext context;
+  context.threadIndex = 0;
+
+  Task task;
+  while (mainTaskQueue.tryDequeue(task))
+  {
+    task.function(task.data, context);
+  }
 }
 
 DWORD TaskScheduler::workerThreadMain(LPVOID parameter)
 {
   TaskScheduler::ThreadContext& threadContext = *static_cast<TaskScheduler::ThreadContext*>(parameter);
-  TaskScheduler& taskScheduler = *threadContext.taskScheduler;
 
   {
     char threadName[64];
@@ -281,7 +296,7 @@ DWORD TaskScheduler::workerThreadMain(LPVOID parameter)
   {
     {
       TRACE_SCOPE("waitForWork");
-      WaitForSingleObject(taskScheduler.queue.semaphore, INFINITE);
+      WaitForSingleObject(taskScheduler.workerQueue.semaphore, INFINITE);
     }
 
     if (taskScheduler.threadsShouldStop)
@@ -297,27 +312,27 @@ DWORD TaskScheduler::workerThreadMain(LPVOID parameter)
 
 bool TaskScheduler::isInitialized() const
 {
-  return queue.semaphore != nullptr;
+  return workerQueue.semaphore != nullptr;
 }
 
 void TaskScheduler::processAllTasks(const ThreadContext& threadContext)
 {
   while (true)
   {
-    int64 taskIndexToRead = queue.taskIndexToRead.load(std::memory_order::memory_order_relaxed);
+    int64 taskIndexToRead = workerQueue.taskIndexToRead.load(std::memory_order::memory_order_relaxed);
 
-    if (taskIndexToRead == queue.cachedTaskIndexToWrite)
+    if (taskIndexToRead == workerQueue.cachedTaskIndexToWrite)
     {
-      queue.cachedTaskIndexToWrite = queue.taskIndexToWrite.load(std::memory_order::memory_order_acquire);
-      if (taskIndexToRead == queue.cachedTaskIndexToWrite)
+      workerQueue.cachedTaskIndexToWrite = workerQueue.taskIndexToWrite.load(std::memory_order::memory_order_acquire);
+      if (taskIndexToRead == workerQueue.cachedTaskIndexToWrite)
       {
         return;
       }
     }
 
-    const Task task = queue.tasks[taskIndexToRead];
-    const int64 nextTaskIndexToRead = (taskIndexToRead + 1) % arrayLength(queue.tasks);
-    if (queue.taskIndexToRead.compare_exchange_strong(taskIndexToRead, nextTaskIndexToRead))
+    const Task task = workerQueue.tasks[taskIndexToRead];
+    const int64 nextTaskIndexToRead = (taskIndexToRead + 1) % arrayLength(workerQueue.tasks);
+    if (workerQueue.taskIndexToRead.compare_exchange_strong(taskIndexToRead, nextTaskIndexToRead))
     {
       task.function(task.data, threadContext);
     }

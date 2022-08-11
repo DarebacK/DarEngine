@@ -80,6 +80,12 @@
     <ClCompile Include="source\external\optick\optick_server.cpp">
       <Filter>Source Files\external\optick</Filter>
     </ClCompile>
+    <ClCompile Include="source\Asset.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="source\Concurrency.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\include\Core\Core.hpp">
@@ -153,6 +159,12 @@
     </ClInclude>
     <ClInclude Include="..\..\include\external\optick\optick.h">
       <Filter>Source Files\include\external\optick</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\Core\Asset.hpp">
+      <Filter>Source Files\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\Core\Concurrency.hpp">
+      <Filter>Source Files\include</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
