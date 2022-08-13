@@ -6,6 +6,15 @@
 
 #include "Core.hpp"
 
+// TODO: create an AssetRegistry inside the manager, that knows about all assets in the asset folder.
+// The registry will be filled during game start on the asset thread. 
+// The registry data structure will be static for the lifetime of the process, so no need to guard it against concurrent access,
+// although its content (the individual asset classes) may be accessed concurrently (TODO: do we really need this?).
+// The data structure will be organized into a tree, where a file directory is a node.
+// The user code can then request to load all assets from the subtree. He will then hold an AssetDirectory reference,
+// which will make all the underlying assets reference count increase by 1 to keep them in memory.
+// For example in case there are 3 subtrees and two of them want to share an asset, one can contain a system shortcut to the other.
+
 class AssetManager
 {
 public:
