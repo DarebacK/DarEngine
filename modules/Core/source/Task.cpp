@@ -117,8 +117,12 @@ void TaskScheduler::deinitialize()
 
 void TaskScheduler::scheduleToWorker(TaskFunction task, void* taskData)
 {
+  // At first glance it could seem it's not necessary to lock the entire method, 
+  // but even if we locked before the write into the queu and incrementing the taskIndexToWrite,
+  // we would still have to do the previous instructions anyway.
+  std::lock_guard<std::mutex> writerMutexGuard{ workerQueue.writerMutex };
+
   const int64 taskIndexToWrite = workerQueue.taskIndexToWrite.load(std::memory_order::memory_order_relaxed);
-  // TODO: allow multiple producers?
   const int64 nextTaskIndexToWrite = (taskIndexToWrite + 1) % arrayLength(workerQueue.tasks);
 
   if (nextTaskIndexToWrite == workerQueue.cachedTaskIndexToRead)
