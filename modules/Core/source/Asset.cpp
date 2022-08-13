@@ -76,8 +76,12 @@ unsigned long AssetManager::assetThreadMain(void* parameter)
         default:
           break;
       }
-    }
 
+      if (assetManager.threadShouldStop)
+      {
+        return 0;
+      }
+    }
 
     std::size_t remainingRequests = 0;
     do
