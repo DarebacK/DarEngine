@@ -12,7 +12,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="source\Asset.cpp" />
-    <ClCompile Include="source\Concurrency.cpp" />
     <ClCompile Include="source\Core.cpp" />
     <ClCompile Include="source\external\lodepng.cpp" />
     <ClCompile Include="source\external\optick\optick_capi.cpp" />
