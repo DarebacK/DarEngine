@@ -4,6 +4,18 @@
 
 #include "Core/Core.hpp"
 
+enum class ThreadType : int8
+{
+  Unknown = 0,
+  Main = 1,
+  Worker = 2
+};
+
+struct ThreadContext
+{
+  int64 index = 0; // Used in case of multiple thread per type, for example taskworker threads. Otherwise 0. Also used in parallel for, where the calling thread is 0.
+};
+
 // Multiple producers, single consumer queue with fixed size.
 template<typename ItemType, uint64 queueSize>
 class MPSCStaticQueue

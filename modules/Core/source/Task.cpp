@@ -4,14 +4,144 @@
 
 #include <intrin.h>
 
-TaskScheduler taskScheduler;
+TaskEventRef::TaskEventRef(TaskEvent* inTaskEvent)
+  : taskEvent(inTaskEvent)
+{
+  if (taskEvent)
+  {
+    taskEvent->ref();
+  }
+}
+TaskEventRef::TaskEventRef(const TaskEventRef& other)
+  : taskEvent(other.taskEvent)
+{
+  if (taskEvent)
+  {
+    taskEvent->ref();
+  }
+}
+TaskEventRef::TaskEventRef(TaskEventRef&& other) noexcept
+{
+  swap(*this, other);
+}
+TaskEventRef& TaskEventRef::operator=(const TaskEventRef& rhs)
+{
+  if (taskEvent)
+  {
+    taskEvent->unref();
+  }
 
-TaskScheduler::TaskScheduler()
+  taskEvent = rhs.taskEvent;
+  if (taskEvent)
+  {
+    taskEvent->ref();
+  }
+
+  return *this;
+}
+TaskEventRef& TaskEventRef::operator=(TaskEventRef&& rhs) noexcept
+{
+  swap(*this, rhs);
+  return *this;
+}
+TaskEventRef::~TaskEventRef()
+{
+  if (taskEvent)
+  {
+    taskEvent->unref();
+  }
+}
+void swap(TaskEventRef& first, TaskEventRef& second)
+{
+  using std::swap;
+
+  swap(first.taskEvent, second.taskEvent);
+}
+
+bool TaskEvent::SubsequentList::tryAdd(TaskEventRef&& taskEvent)
+{
+  if (isComplete)
+  {
+    return false;
+  }
+
+  // TODO: use object pool allocator.
+  Node* newHead = new Node();
+  newHead->taskEvent = std::move(taskEvent);
+
+  do 
+  {
+    Node* previousHead = head.load(std::memory_order_acquire);
+    newHead->next = previousHead;
+    if (head.compare_exchange_strong(previousHead, newHead))
+    {
+      return true;
+    }
+  } while (!isComplete);
+
+  delete newHead;
+
+  return false;
+}
+void TaskEvent::SubsequentList::complete()
+{
+  isComplete = true;
+
+  Node* previousHead;
+  do
+  {
+    previousHead = head.load(std::memory_order_acquire);
+  } while (!head.compare_exchange_strong(previousHead, nullptr));
+
+  while (previousHead)
+  {
+    previousHead->taskEvent->removePrerequisite();
+    Node* toDelete = previousHead;
+    previousHead = previousHead->next;
+    delete toDelete;
+  }
+}
+
+TaskEvent::TaskEvent(TaskFunction inFunction, void* inData, ThreadType inDesiredThread)
+  : function(inFunction)
+  , data(inData)
+  , desiredThread(inDesiredThread)
+{
+}
+void TaskEvent::ref()
+{
+  ++refCount;
+}
+void TaskEvent::unref()
+{
+  const int8 newCount = --refCount;
+  assert(newCount >= 0);
+  if (newCount == 0)
+  {
+    delete this;
+  }
+}
+void TaskEvent::addPrerequisite()
+{
+  ++prerequisiteCount;
+}
+void TaskEvent::removePrerequisite()
+{
+  const int8 newCount = --prerequisiteCount;
+  assert(newCount >= 0);
+  if (newCount == 0)
+  {
+    taskManager.enqueue(function, data, desiredThread, TaskEventRef(this));
+  }
+}
+
+TaskManager taskManager;
+
+TaskManager::TaskManager()
   : parallelForFinishedEvent(CreateEvent(NULL, true, true, NULL))
 {
 }
-
-TaskScheduler::~TaskScheduler()
+TaskManager::~TaskManager()
 {
   if (!isInitialized())
   {
@@ -20,8 +150,7 @@ TaskScheduler::~TaskScheduler()
 
   deinitialize();
 }
-
-void TaskScheduler::initialize()
+void TaskManager::initialize()
 {
   if (isInitialized())
   {
@@ -33,8 +162,7 @@ void TaskScheduler::initialize()
   const int workerThreadCount = std::max(int(systemInfo.dwNumberOfProcessors - 1), 1);
   initialize(workerThreadCount);
 }
-
-void TaskScheduler::initialize(int inThreadCount)
+void TaskManager::initialize(int inThreadCount)
 {
   if (isInitialized())
   {
@@ -64,8 +192,7 @@ void TaskScheduler::initialize(int inThreadCount)
     ResumeThread(thread);
   }
 }
-
-void TaskScheduler::deinitialize()
+void TaskManager::deinitialize()
 {
   threadsShouldStop = true;
 
@@ -114,8 +241,56 @@ void TaskScheduler::deinitialize()
     workerQueue.semaphore = nullptr;
   }
 }
+TaskEventRef TaskManager::schedule(TaskFunction function, void* data, ThreadType desiredThread)
+{
+  TaskEventRef completionEvent = TaskEvent::create(function, data, ThreadType::Main);
+  enqueue(function, data, desiredThread, completionEvent);
+  return completionEvent;
+}
+TaskEventRef TaskManager::schedule(TaskFunction function, void* data, ThreadType desiredThread, TaskEventRef* prerequisites, int8 prerequisiteCount)
+{
+  if (!prerequisites)
+  {
+    // TODO: add non fatal type of asserts for these cases.
+    assert(prerequisiteCount == 0);
+    return schedule(function, data, desiredThread);
+  }
+  assert(prerequisiteCount > 0);
 
-void TaskScheduler::scheduleToWorker(TaskFunction task, void* taskData)
+  TaskEventRef completionEvent = TaskEvent::create(function, data, desiredThread);
+  completionEvent->setPrerequisites(prerequisiteCount);
+  for (int64 i = 0; i < prerequisiteCount; ++i)
+  {
+    if (!prerequisites[i]->tryAddSubsequent(completionEvent))
+    {
+      completionEvent->removePrerequisite();
+    }
+  }
+  return completionEvent;
+}
+void TaskManager::enqueue(TaskFunction function, void* data, ThreadType desiredThread, TaskEventRef completionEvent)
+{
+  switch (desiredThread)
+  {
+    case ThreadType::Main:
+      enqueueToMain(function, data, std::move(completionEvent));
+      break;
+
+    case ThreadType::Worker:
+      enqueueToWorker(function, data, std::move(completionEvent));
+      break;
+
+    default:
+      logError("Attempted to schedule to unknown thread.");
+      assert(false);
+      break;
+  }
+}
+void TaskManager::enqueueToMain(TaskFunction function, void* data, TaskEventRef&& completionEvent)
+{
+  mainTaskQueue.enqueue(Task{ function, data, std::move(completionEvent) });
+}
+void TaskManager::enqueueToWorker(TaskFunction task, void* taskData, TaskEventRef&& completionEvent)
 {
   // At first glance it could seem it's not necessary to lock the entire method, 
   // but even if we locked before the write into the queu and incrementing the taskIndexToWrite,
@@ -143,15 +318,11 @@ void TaskScheduler::scheduleToWorker(TaskFunction task, void* taskData)
 
   workerQueue.tasks[workerQueue.taskIndexToWrite].function = task;
   workerQueue.tasks[workerQueue.taskIndexToWrite].data = taskData;
+  workerQueue.tasks[workerQueue.taskIndexToWrite].completionEvent = std::move(completionEvent);
 
   workerQueue.taskIndexToWrite.store(nextTaskIndexToWrite, std::memory_order_release);
 
   ReleaseSemaphore(workerQueue.semaphore, 1, NULL);
-}
-
-void TaskScheduler::scheduleToMain(TaskFunction task, void* taskData)
-{
-  mainTaskQueue.enqueue(Task{ task, taskData });
 }
 
 struct ParallelForTaskData
@@ -163,7 +334,6 @@ struct ParallelForTaskData
   std::atomic<int64> threadsRemaining;
   void* finishedEvent;
 };
-
 static void parallelForTaskInternal(ParallelForTaskData& taskData, int64 threadIndex)
 {
   int64 currentValue = taskData.currentValue++;
@@ -185,7 +355,7 @@ static void parallelForTaskInternal(ParallelForTaskData& taskData, int64 threadI
 
 DEFINE_TASK_BEGIN(parallelForTask, ParallelForTaskData)
 {
-  parallelForTaskInternal(taskData, threadContext.threadIndex + 1); // Calling thread is 0.
+  parallelForTaskInternal(taskData, threadContext.index + 1); // Calling thread is 0.
 
   if (--taskData.threadsRemaining == 0)
   {
@@ -194,7 +364,7 @@ DEFINE_TASK_BEGIN(parallelForTask, ParallelForTaskData)
 }
 DEFINE_TASK_END
 
-void TaskScheduler::parallelFor(int64 beginValue, int64 endValue, const std::function<void(int64 iterationIndex, int64 threadIndex)>& function)
+void TaskManager::parallelFor(int64 beginValue, int64 endValue, const std::function<void(int64 iterationIndex, int64 threadIndex)>& function)
 {
   TRACE_SCOPE();
 
@@ -227,7 +397,7 @@ void TaskScheduler::parallelFor(int64 beginValue, int64 endValue, const std::fun
     taskData = new ParallelForTaskData{ beginValueForWorkerThreads, endValue, function, iterationCountToDoInCurrentThread, totalThreadCount, parallelForFinishedEvent };
     for(size_t i = 0; i < threads.size(); ++i)
     {
-      scheduleToWorker(&parallelForTask, taskData);
+      enqueueToWorker(&parallelForTask, taskData, TaskEventRef());
     }
   }
   else
@@ -273,55 +443,55 @@ void TaskScheduler::parallelFor(int64 beginValue, int64 endValue, const std::fun
     }
   }
 }
-
-void TaskScheduler::processMainTasks()
+void TaskManager::processMainTasks()
 {
   TRACE_SCOPE();
 
   ThreadContext context;
-  context.threadIndex = 0;
+  context.index = 0;
 
   Task task;
   while (mainTaskQueue.tryDequeue(task))
   {
     task.function(task.data, context);
+    if (task.completionEvent.isValid())
+    {
+      task.completionEvent->complete();
+    }
   }
 }
-
-DWORD TaskScheduler::workerThreadMain(LPVOID parameter)
+DWORD TaskManager::workerThreadMain(LPVOID parameter)
 {
-  TaskScheduler::ThreadContext& threadContext = *static_cast<TaskScheduler::ThreadContext*>(parameter);
+  ThreadContext& threadContext = *static_cast<ThreadContext*>(parameter);
 
   {
     char threadName[64];
-    sprintf_s(threadName, "TaskSchedulerWorker %lld", threadContext.threadIndex);
+    sprintf_s(threadName, "TaskManagerWorker %lld", threadContext.index);
     TRACE_THREAD(threadName);
   }
 
-  while (!taskScheduler.threadsShouldStop)
+  while (!taskManager.threadsShouldStop)
   {
     {
       TRACE_SCOPE("waitForWork");
-      WaitForSingleObject(taskScheduler.workerQueue.semaphore, INFINITE);
+      WaitForSingleObject(taskManager.workerQueue.semaphore, INFINITE);
     }
 
-    if (taskScheduler.threadsShouldStop)
+    if (taskManager.threadsShouldStop)
     {
       break;
     }
 
-    taskScheduler.processAllTasks(threadContext);
+    taskManager.processAllTasks(threadContext);
   }
 
   return 0;
 }
-
-bool TaskScheduler::isInitialized() const
+bool TaskManager::isInitialized() const
 {
   return workerQueue.semaphore != nullptr;
 }
-
-void TaskScheduler::processAllTasks(const ThreadContext& threadContext)
+void TaskManager::processAllTasks(const ThreadContext& threadContext)
 {
   while (true)
   {
@@ -336,11 +506,15 @@ void TaskScheduler::processAllTasks(const ThreadContext& threadContext)
       }
     }
 
-    const Task task = workerQueue.tasks[taskIndexToRead];
+    Task task = workerQueue.tasks[taskIndexToRead];
     const int64 nextTaskIndexToRead = (taskIndexToRead + 1) % arrayLength(workerQueue.tasks);
     if (workerQueue.taskIndexToRead.compare_exchange_strong(taskIndexToRead, nextTaskIndexToRead))
     {
       task.function(task.data, threadContext);
+      if (task.completionEvent.isValid())
+      {
+        task.completionEvent->complete();
+      }
     }
   }
 }
