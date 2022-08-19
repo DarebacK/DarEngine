@@ -5,6 +5,7 @@
 
 #include "Core/Core.hpp"
 #include "Core/Concurrency.hpp"
+#include "Core/Memory.hpp"
 
 /**
  * The point of this task system is to divide work into independent tasks and distribute it
@@ -49,9 +50,8 @@ class alignas(CACHE_LINE_SIZE) TaskEvent
 
 public:
 
-  // TODO: use object pool allocator
-  static TaskEventRef create() { return TaskEventRef(new TaskEvent()); }
-  static TaskEventRef create(TaskFunction function, void* data, ThreadType desiredThread) { return TaskEventRef(new TaskEvent(function, data, desiredThread)); } 
+  static TaskEventRef create();
+  static TaskEventRef create(TaskFunction function, void* data, ThreadType desiredThread);
 
   void complete() { return subsequents.complete(); }
 
@@ -92,6 +92,8 @@ private:
       TaskEventRef taskEvent;
       Node* next = nullptr;
     };
+    static FixedThreadSafePoolAllocator<Node, 1024> nodeAllocator;
+    static void recycle(Node* node);
 
     std::atomic<Node*> head = nullptr;
     volatile bool isComplete = false;

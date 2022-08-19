@@ -58,6 +58,7 @@ void swap(TaskEventRef& first, TaskEventRef& second)
   swap(first.taskEvent, second.taskEvent);
 }
 
+FixedThreadSafePoolAllocator<TaskEvent::SubsequentList::Node, 1024> TaskEvent::SubsequentList::nodeAllocator;
 bool TaskEvent::SubsequentList::tryAdd(TaskEventRef&& taskEvent)
 {
   if (isComplete)
@@ -65,8 +66,7 @@ bool TaskEvent::SubsequentList::tryAdd(TaskEventRef&& taskEvent)
     return false;
   }
 
-  // TODO: use object pool allocator.
-  Node* newHead = new Node();
+  Node* newHead = new (nodeAllocator.allocate()) Node();
   newHead->taskEvent = std::move(taskEvent);
 
   do 
@@ -79,7 +79,7 @@ bool TaskEvent::SubsequentList::tryAdd(TaskEventRef&& taskEvent)
     }
   } while (!isComplete);
 
-  delete newHead;
+  recycle(newHead);
 
   return false;
 }
@@ -98,10 +98,24 @@ void TaskEvent::SubsequentList::complete()
     previousHead->taskEvent->removePrerequisite();
     Node* toDelete = previousHead;
     previousHead = previousHead->next;
-    delete toDelete;
+    recycle(toDelete);
   }
 }
+void TaskEvent::SubsequentList::recycle(Node* node)
+{
+  node->~Node();
+  nodeAllocator.deallocate(node);
+}
 
+static FixedThreadSafePoolAllocator<TaskEvent, 512> taskEventAllocator;
+TaskEventRef TaskEvent::create() 
+{ 
+  return TaskEventRef(new (taskEventAllocator.allocate()) TaskEvent()); 
+}
+TaskEventRef TaskEvent::create(TaskFunction function, void* data, ThreadType desiredThread) 
+{
+  return TaskEventRef(new (taskEventAllocator.allocate()) TaskEvent(function, data, desiredThread)); 
+}
 TaskEvent::TaskEvent(TaskFunction inFunction, void* inData, ThreadType inDesiredThread)
   : function(inFunction)
   , data(inData)
@@ -118,7 +132,8 @@ void TaskEvent::unref()
   assert(newCount >= 0);
   if (newCount == 0)
   {
-    delete this;
+    this->~TaskEvent();
+    taskEventAllocator.deallocate(this);
   }
 }
 void TaskEvent::addPrerequisite()

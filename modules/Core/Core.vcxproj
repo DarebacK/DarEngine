@@ -39,6 +39,7 @@
     <ClInclude Include="..\..\include\Core\Image.hpp" />
     <ClInclude Include="..\..\include\Core\Input.hpp" />
     <ClInclude Include="..\..\include\Core\Math.hpp" />
+    <ClInclude Include="..\..\include\Core\Memory.hpp" />
     <ClInclude Include="..\..\include\Core\String.hpp" />
     <ClInclude Include="..\..\include\Core\Task.hpp" />
     <ClInclude Include="..\..\include\Core\WindowsPlatform.h" />

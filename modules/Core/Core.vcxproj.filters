@@ -163,6 +163,9 @@
     <ClInclude Include="..\..\include\Core\Concurrency.hpp">
       <Filter>Source Files\include</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\include\Core\Memory.hpp">
+      <Filter>Source Files\include</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\include\Core\Input.inl">
