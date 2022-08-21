@@ -4,6 +4,11 @@
 
 #include "Core/Core.hpp"
 
+// Allocated memory aligned to alignment. Supports any alignment and size.
+// This may cause more memory overhead than necessary. For smaller alignments, consider implementing small alignment versions.
+void* alignedMalloc(std::size_t alignment, std::size_t size);
+void alignedFree(void* pointer);
+
 // Allocates objects from a fixed size array. Unallocated objects are managed using a free list.
 template<typename ObjectType, int64 size>
 class FixedThreadSafePoolAllocator
@@ -24,15 +29,27 @@ public:
     reinterpret_cast<FreeListItem*>(&pool[(size - 1) * sizeof(ObjectType)])->next = nullptr;
   }
 
-  ObjectType* allocate()
+  void* allocate()
   {
     FreeListItem* lastFreeListHead;
     do
     {
       lastFreeListHead = freeListHead.load(std::memory_order_relaxed);
-    } while (!lastFreeListHead || !freeListHead.compare_exchange_strong(lastFreeListHead, lastFreeListHead->next));
+      if (!lastFreeListHead)
+      {
+        logWarning("FixedThreadSafePoolAllocator ran out of preallocated pool objects.");
+        if (alignof(ObjectType) > alignof(std::max_align_t))
+        {
+          return alignedMalloc(alignof(ObjectType), sizeof(ObjectType));
+        }
+        else
+        {
+          return malloc(sizeof(ObjectType));
+        }
+      }
+    } while (!freeListHead.compare_exchange_strong(lastFreeListHead, lastFreeListHead->next));
 
-    return reinterpret_cast<ObjectType*>(lastFreeListHead);
+    return lastFreeListHead;
   }
 
   void deallocate(ObjectType* toDeallocate)
@@ -54,7 +71,7 @@ public:
 
 private:
 
-  byte alignas(alignof(ObjectType)) pool[size * sizeof(ObjectType)];
+  byte alignas(alignof(ObjectType)) pool[size * sizeof(ObjectType)]; // Is byte array to avoid default initialization of objects.
 
   struct FreeListItem
   {

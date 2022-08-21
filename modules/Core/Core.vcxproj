@@ -27,6 +27,7 @@
     <ClCompile Include="source\Image.cpp" />
     <ClCompile Include="source\Input.cpp" />
     <ClCompile Include="source\Math.cpp" />
+    <ClCompile Include="source\Memory.cpp" />
     <ClCompile Include="source\String.cpp" />
     <ClCompile Include="source\Task.cpp" />
     <ClCompile Include="source\WindowsPlatform.cpp" />
