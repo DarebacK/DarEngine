@@ -4,62 +4,8 @@
 
 #include <intrin.h>
 
-TaskEventRef::TaskEventRef(TaskEvent* inTaskEvent)
-  : taskEvent(inTaskEvent)
-{
-  if (taskEvent)
-  {
-    taskEvent->ref();
-  }
-}
-TaskEventRef::TaskEventRef(const TaskEventRef& other)
-  : taskEvent(other.taskEvent)
-{
-  if (taskEvent)
-  {
-    taskEvent->ref();
-  }
-}
-TaskEventRef::TaskEventRef(TaskEventRef&& other) noexcept
-{
-  swap(*this, other);
-}
-TaskEventRef& TaskEventRef::operator=(const TaskEventRef& rhs)
-{
-  if (taskEvent)
-  {
-    taskEvent->unref();
-  }
-
-  taskEvent = rhs.taskEvent;
-  if (taskEvent)
-  {
-    taskEvent->ref();
-  }
-
-  return *this;
-}
-TaskEventRef& TaskEventRef::operator=(TaskEventRef&& rhs) noexcept
-{
-  swap(*this, rhs);
-  return *this;
-}
-TaskEventRef::~TaskEventRef()
-{
-  if (taskEvent)
-  {
-    taskEvent->unref();
-  }
-}
-void swap(TaskEventRef& first, TaskEventRef& second)
-{
-  using std::swap;
-
-  swap(first.taskEvent, second.taskEvent);
-}
-
 FixedThreadSafePoolAllocator<TaskEvent::SubsequentList::Node, 1024> TaskEvent::SubsequentList::nodeAllocator;
-bool TaskEvent::SubsequentList::tryAdd(TaskEventRef&& taskEvent)
+bool TaskEvent::SubsequentList::tryAdd(Ref<TaskEvent>&& taskEvent)
 {
   if (isComplete)
   {
@@ -108,13 +54,13 @@ void TaskEvent::SubsequentList::recycle(Node* node)
 }
 
 static FixedThreadSafePoolAllocator<TaskEvent, 512> taskEventAllocator;
-TaskEventRef TaskEvent::create() 
+Ref<TaskEvent> TaskEvent::create() 
 { 
-  return TaskEventRef(new (taskEventAllocator.allocate()) TaskEvent()); 
+  return Ref<TaskEvent>(new (taskEventAllocator.allocate()) TaskEvent()); 
 }
-TaskEventRef TaskEvent::create(TaskFunction function, void* data, ThreadType desiredThread) 
+Ref<TaskEvent> TaskEvent::create(TaskFunction function, void* data, ThreadType desiredThread) 
 {
-  return TaskEventRef(new (taskEventAllocator.allocate()) TaskEvent(function, data, desiredThread)); 
+  return Ref<TaskEvent>(new (taskEventAllocator.allocate()) TaskEvent(function, data, desiredThread)); 
 }
 TaskEvent::TaskEvent(TaskFunction inFunction, void* inData, ThreadType inDesiredThread)
   : function(inFunction)
@@ -146,7 +92,7 @@ void TaskEvent::removePrerequisite()
   assert(newCount >= 0);
   if (newCount == 0)
   {
-    taskManager.enqueue(function, data, desiredThread, TaskEventRef(this));
+    taskManager.enqueue(function, data, desiredThread, Ref<TaskEvent>(this));
   }
 }
 
@@ -256,13 +202,13 @@ void TaskManager::deinitialize()
     workerQueue.semaphore = nullptr;
   }
 }
-TaskEventRef TaskManager::schedule(TaskFunction function, void* data, ThreadType desiredThread)
+Ref<TaskEvent> TaskManager::schedule(TaskFunction function, void* data, ThreadType desiredThread)
 {
-  TaskEventRef completionEvent = TaskEvent::create(function, data, ThreadType::Main);
+  Ref<TaskEvent> completionEvent = TaskEvent::create(function, data, ThreadType::Main);
   enqueue(function, data, desiredThread, completionEvent);
   return completionEvent;
 }
-TaskEventRef TaskManager::schedule(TaskFunction function, void* data, ThreadType desiredThread, TaskEventRef* prerequisites, int8 prerequisiteCount)
+Ref<TaskEvent> TaskManager::schedule(TaskFunction function, void* data, ThreadType desiredThread, Ref<TaskEvent>* prerequisites, int8 prerequisiteCount)
 {
   if (!prerequisites)
   {
@@ -272,7 +218,7 @@ TaskEventRef TaskManager::schedule(TaskFunction function, void* data, ThreadType
   }
   assert(prerequisiteCount > 0);
 
-  TaskEventRef completionEvent = TaskEvent::create(function, data, desiredThread);
+  Ref<TaskEvent> completionEvent = TaskEvent::create(function, data, desiredThread);
   completionEvent->setPrerequisites(prerequisiteCount);
   for (int64 i = 0; i < prerequisiteCount; ++i)
   {
@@ -283,7 +229,7 @@ TaskEventRef TaskManager::schedule(TaskFunction function, void* data, ThreadType
   }
   return completionEvent;
 }
-void TaskManager::enqueue(TaskFunction function, void* data, ThreadType desiredThread, TaskEventRef completionEvent)
+void TaskManager::enqueue(TaskFunction function, void* data, ThreadType desiredThread, Ref<TaskEvent> completionEvent)
 {
   switch (desiredThread)
   {
@@ -301,11 +247,11 @@ void TaskManager::enqueue(TaskFunction function, void* data, ThreadType desiredT
       break;
   }
 }
-void TaskManager::enqueueToMain(TaskFunction function, void* data, TaskEventRef&& completionEvent)
+void TaskManager::enqueueToMain(TaskFunction function, void* data, Ref<TaskEvent>&& completionEvent)
 {
   mainTaskQueue.enqueue(Task{ function, data, std::move(completionEvent) });
 }
-void TaskManager::enqueueToWorker(TaskFunction task, void* taskData, TaskEventRef&& completionEvent)
+void TaskManager::enqueueToWorker(TaskFunction task, void* taskData, Ref<TaskEvent>&& completionEvent)
 {
   // At first glance it could seem it's not necessary to lock the entire method, 
   // but even if we locked before the write into the queu and incrementing the taskIndexToWrite,
@@ -412,7 +358,7 @@ void TaskManager::parallelFor(int64 beginValue, int64 endValue, const std::funct
     taskData = new ParallelForTaskData{ beginValueForWorkerThreads, endValue, function, iterationCountToDoInCurrentThread, totalThreadCount, parallelForFinishedEvent };
     for(size_t i = 0; i < threads.size(); ++i)
     {
-      enqueueToWorker(&parallelForTask, taskData, TaskEventRef());
+      enqueueToWorker(&parallelForTask, taskData, Ref<TaskEvent>());
     }
   }
   else

@@ -79,3 +79,74 @@ private:
   };
   std::atomic<FreeListItem*> alignas(CACHE_LINE_SIZE) freeListHead; // Keep on separate cache line to avoid false sharing.
 };
+
+// Value type must implement ref() and unref() methods.
+template<typename ValueType>
+class Ref
+{
+public:
+
+  Ref() = default;
+  explicit Ref(ValueType* InPtr)
+    : ptr(InPtr)
+  {
+    if (ptr)
+    {
+      ptr->ref();
+    }
+  }
+  Ref(const Ref& other)
+    : ptr(other.ptr)
+  {
+    if (ptr)
+    {
+      ptr->ref();
+    }
+  }
+  Ref(Ref&& other) noexcept
+  {
+    swap(*this, other);
+  }
+  Ref& operator=(const Ref& rhs)
+  {
+    if (ptr)
+    {
+      ptr->unref();
+    }
+
+    ptr = rhs.ptr;
+    if (ptr)
+    {
+      ptr->ref();
+    }
+
+    return *this;
+  }
+  Ref& operator=(Ref&& rhs) noexcept
+  {
+    swap(*this, rhs);
+    return *this;
+  }
+  ~Ref()
+  {
+    if (ptr)
+    {
+      ptr->unref();
+    }
+  }
+
+  friend void swap(Ref& first, Ref& second)
+  {
+    using std::swap;
+
+    swap(first.ptr, second.ptr);
+  }
+
+  bool isValid() const { return ptr != nullptr; }
+
+  ValueType* operator->() { assert(ptr != nullptr); return ptr; }
+
+private:
+
+  ValueType* ptr = nullptr;
+};

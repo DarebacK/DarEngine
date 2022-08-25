@@ -12,30 +12,6 @@
  * across threads to achieve parallelism and therefore better performance.
  */ 
 
-class TaskEvent;
-class TaskEventRef
-{
-public:
-
-  TaskEventRef() = default;
-  explicit TaskEventRef(TaskEvent* inTaskEvent);
-  TaskEventRef(const TaskEventRef& other);
-  TaskEventRef(TaskEventRef&& other) noexcept;
-  TaskEventRef& operator=(const TaskEventRef& rhs);
-  TaskEventRef& operator=(TaskEventRef&& rhs) noexcept;
-  ~TaskEventRef();
-
-  friend void swap(TaskEventRef& first, TaskEventRef& second);
-
-  bool isValid() const { return taskEvent != nullptr; }
-
-  TaskEvent* operator->() { assert(taskEvent != nullptr); return taskEvent; }
-
-private:
-
-  TaskEvent* taskEvent = nullptr;
-};
-
 using TaskFunction = void (*)(void* taskParameter, const ThreadContext& threadContext);
 
 /**
@@ -50,8 +26,8 @@ class alignas(CACHE_LINE_SIZE) TaskEvent
 
 public:
 
-  static TaskEventRef create();
-  static TaskEventRef create(TaskFunction function, void* data, ThreadType desiredThread);
+  static Ref<TaskEvent> create();
+  static Ref<TaskEvent> create(TaskFunction function, void* data, ThreadType desiredThread);
 
   void complete() { return subsequents.complete(); }
 
@@ -69,10 +45,10 @@ private:
   void setPrerequisites(int8 prerequisites) { prerequisiteCount = prerequisites; }
   void removePrerequisite();
 
-  bool tryAddSubsequent(TaskEventRef&& taskEvent) { return subsequents.tryAdd(std::move(taskEvent)); }
-  bool tryAddSubsequent(const TaskEventRef& taskEvent) { return subsequents.tryAdd(taskEvent); }
+  bool tryAddSubsequent(Ref<TaskEvent>&& taskEvent) { return subsequents.tryAdd(std::move(taskEvent)); }
+  bool tryAddSubsequent(const Ref<TaskEvent>& taskEvent) { return subsequents.tryAdd(taskEvent); }
 
-  friend class TaskEventRef;
+  friend Ref<TaskEvent>;
   friend class TaskManager;
 
   class SubsequentList
@@ -80,8 +56,8 @@ private:
   public:
 
     // Returns true if the list hasn't been completed yet, false otherwise.
-    bool tryAdd(TaskEventRef&& taskEvent);
-    bool tryAdd(const TaskEventRef& taskEvent) { return tryAdd(TaskEventRef(taskEvent)); }
+    bool tryAdd(Ref<TaskEvent>&& taskEvent);
+    bool tryAdd(const Ref<TaskEvent>& taskEvent) { return tryAdd(Ref<TaskEvent>(taskEvent)); }
 
     void complete();
 
@@ -89,7 +65,7 @@ private:
 
     struct Node
     {
-      TaskEventRef taskEvent;
+      Ref<TaskEvent> taskEvent;
       Node* next = nullptr;
     };
     static FixedThreadSafePoolAllocator<Node, 1024> nodeAllocator;
@@ -124,8 +100,8 @@ public:
   void initialize(int threadCount);
   void deinitialize();
 
-  TaskEventRef schedule(TaskFunction task, void* taskData, ThreadType desiredThread);
-  TaskEventRef schedule(TaskFunction task, void* taskData, ThreadType desiredThread, TaskEventRef* prerequisites, int8 prerequisiteCount);
+  Ref<TaskEvent> schedule(TaskFunction task, void* taskData, ThreadType desiredThread);
+  Ref<TaskEvent> schedule(TaskFunction task, void* taskData, ThreadType desiredThread, Ref<TaskEvent>* prerequisites, int8 prerequisiteCount);
 
   // endValue means 1 past end
   void parallelFor(int64 beginValue, int64 endValue, const std::function<void(int64 iterationIndex, int64 threadIndex)>& function);
@@ -139,15 +115,15 @@ private:
 
   friend class TaskEvent;
   // Schedule task that's ready for execution.
-  void enqueue(TaskFunction function, void* data, ThreadType desiredThread, TaskEventRef completionEvent);
-  void enqueueToMain(TaskFunction task, void* taskData, TaskEventRef&& completionEvent);
-  void enqueueToWorker(TaskFunction task, void* taskData, TaskEventRef&& completionEvent);
+  void enqueue(TaskFunction function, void* data, ThreadType desiredThread, Ref<TaskEvent> completionEvent);
+  void enqueueToMain(TaskFunction task, void* taskData, Ref<TaskEvent>&& completionEvent);
+  void enqueueToWorker(TaskFunction task, void* taskData, Ref<TaskEvent>&& completionEvent);
 
   struct Task
   {
     TaskFunction function;
     void* data;
-    TaskEventRef completionEvent;
+    Ref<TaskEvent> completionEvent;
   };
 
   struct TaskQueue
