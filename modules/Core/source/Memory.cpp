@@ -15,6 +15,10 @@ void* alignedMalloc(std::size_t alignment, std::size_t size)
 }
 void alignedFree(void* pointer)
 {
-  assert(pointer != nullptr);
+  if (!pointer)
+  {
+    logError("Passed nullptr to alignedFree.");
+    return;
+  }
   free(reinterpret_cast<void*>(*(reinterpret_cast<uintptr_t*>(pointer) - 1)));
 }
