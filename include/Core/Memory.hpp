@@ -8,6 +8,7 @@
 // This may cause more memory overhead than necessary. For smaller alignments, consider implementing small alignment versions.
 void* alignedMalloc(std::size_t alignment, std::size_t size);
 void alignedFree(void* pointer);
+inline bool isAligned(void* ptr, size_t alignment) { return uintptr_t(ptr) % alignment == 0; }
 
 // Allocates objects from a fixed size array. Unallocated objects are managed using a free list.
 template<typename ObjectType, int64 size>
