@@ -12,6 +12,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="source\Asset.cpp" />
+    <ClCompile Include="source\Config.cpp" />
     <ClCompile Include="source\Core.cpp" />
     <ClCompile Include="source\external\lodepng.cpp" />
     <ClCompile Include="source\external\optick\optick_capi.cpp" />
@@ -35,6 +36,7 @@
   <ItemGroup>
     <ClInclude Include="..\..\include\Core\Asset.hpp" />
     <ClInclude Include="..\..\include\Core\Concurrency.hpp" />
+    <ClInclude Include="..\..\include\Core\Config.hpp" />
     <ClInclude Include="..\..\include\Core\Core.hpp" />
     <ClInclude Include="..\..\include\Core\File.hpp" />
     <ClInclude Include="..\..\include\Core\Image.hpp" />
@@ -44,6 +46,7 @@
     <ClInclude Include="..\..\include\Core\String.hpp" />
     <ClInclude Include="..\..\include\Core\Task.hpp" />
     <ClInclude Include="..\..\include\Core\WindowsPlatform.h" />
+    <ClInclude Include="..\..\include\external\libconfini\confini.h" />
     <ClInclude Include="..\..\include\external\optick\optick.config.h" />
     <ClInclude Include="..\..\include\external\optick\optick.h" />
     <ClInclude Include="source\external\optick\optick_capi.h" />
@@ -126,7 +129,7 @@
     </Link>
     <Lib>
       <AdditionalLibraryDirectories>$(ProjectDir)..\..\external\libraries\$(Platform);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>jpeg.lib;turbojpeg.lib;libwebp.lib;libwebpdemux.lib;libwebpmux.lib;</AdditionalDependencies>
+      <AdditionalDependencies>jpeg.lib;turbojpeg.lib;libwebp.lib;libwebpdemux.lib;libwebpmux.lib;libconfini.lib;</AdditionalDependencies>
     </Lib>
     <PostBuildEvent>
       <Command>xcopy "$(ProjectDir)..\..\external\binaries" "$(OutDir)" /d /i /y /r</Command>
@@ -155,7 +158,7 @@
     </Link>
     <Lib>
       <AdditionalLibraryDirectories>$(ProjectDir)..\..\external\libraries\$(Platform);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>jpeg.lib;turbojpeg.lib;libwebp.lib;libwebpdemux.lib;libwebpmux.lib;</AdditionalDependencies>
+      <AdditionalDependencies>jpeg.lib;turbojpeg.lib;libwebp.lib;libwebpdemux.lib;libwebpmux.lib;libconfini.lib;</AdditionalDependencies>
     </Lib>
     <PostBuildEvent>
       <Command>xcopy "$(ProjectDir)..\..\external\binaries" "$(OutDir)" /d /i /y /r</Command>

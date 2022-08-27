@@ -24,6 +24,9 @@
     <Filter Include="Source Files\include\external\optick">
       <UniqueIdentifier>{9677c448-338b-486a-8e65-ea47ec7485a6}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\include\external\libconfini">
+      <UniqueIdentifier>{7acef87b-f95d-4e90-bff8-b4f10bc20f10}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="source\Core.cpp">
@@ -84,6 +87,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="source\Memory.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="source\Config.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -167,6 +173,12 @@
       <Filter>Source Files\include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\Core\Memory.hpp">
+      <Filter>Source Files\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\external\libconfini\confini.h">
+      <Filter>Source Files\include\external\libconfini</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\Core\Config.hpp">
       <Filter>Source Files\include</Filter>
     </ClInclude>
   </ItemGroup>
