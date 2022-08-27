@@ -37,7 +37,7 @@ static ConfigKeyValueNode toConfigKeyValueNode(IniDispatch* dispatch)
   node.key = dispatch->data;
   node.value = dispatch->value;
   node.sectionPath = dispatch->append_to;
-  node.dataLength = dispatch->d_len;
+  node.keyLength = dispatch->d_len;
   node.valueLength = dispatch->v_len;
   node.sectionPathLength = dispatch->at_len;
   return node;

@@ -1,6 +1,7 @@
 #include "pch.h"
 
 #include "Core/Memory.hpp"
+#include "Core/Config.hpp"
 
 // Memory tests ************************************************************************************
 
@@ -33,3 +34,31 @@ TEST(Memory, alignedMalloc) {
 }
 
 // Config tests ************************************************************************************
+
+TEST(Config, tryParseConfigSimpleValid)
+{
+  std::string config = "widthInMeters=1565430\nheightInMeters = 1878516 ";
+  int valueCounter = 0;
+  EXPECT_TRUE(tryParseConfig(config.data(), config.length() - 1, 
+    [&valueCounter](const ConfigKeyValueNode& node) -> bool
+    {
+      if (valueCounter == 0)
+      {
+        EXPECT_TRUE(strcmp(node.key, "widthInMeters") == 0);
+        EXPECT_EQ(node.keyLength, strlen("widthInMeters"));
+        EXPECT_EQ(node.toInt(), 1565430);
+      }
+      else if (valueCounter == 1)
+      {
+        EXPECT_TRUE(strcmp(node.key, "heightInMeters") == 0);
+        EXPECT_EQ(node.keyLength, strlen("heightInMeters"));
+        EXPECT_EQ(node.toInt(), 1878516);
+      }
+
+      valueCounter++;
+
+      return false;
+    }
+  ));
+  EXPECT_EQ(valueCounter, 2);
+}
