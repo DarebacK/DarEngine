@@ -72,13 +72,13 @@ public:
 
 private:
 
-  byte alignas(alignof(ObjectType)) pool[size * sizeof(ObjectType)]; // Is byte array to avoid default initialization of objects.
+  alignas(alignof(ObjectType)) byte pool[size * sizeof(ObjectType)]; // Is byte array to avoid default initialization of objects.
 
   struct FreeListItem
   {
     FreeListItem* next;
   };
-  std::atomic<FreeListItem*> alignas(CACHE_LINE_SIZE) freeListHead; // Keep on separate cache line to avoid false sharing.
+  alignas(CACHE_LINE_SIZE) std::atomic<FreeListItem*> freeListHead; // Keep on separate cache line to avoid false sharing.
 };
 
 // Value type must implement ref() and unref() methods.
