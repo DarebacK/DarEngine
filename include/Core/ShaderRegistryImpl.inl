@@ -1,7 +1,7 @@
 #include "Core/Core.hpp"
 #include "Core/File.hpp"
 #include "Core/String.hpp"
-#include "D3D11/D3D11.hpp"
+#include "Core/D3D11.hpp"
 
 #include <vector>
 

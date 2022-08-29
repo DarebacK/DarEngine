@@ -27,6 +27,12 @@
     <Filter Include="Source Files\include\external\libconfini">
       <UniqueIdentifier>{7acef87b-f95d-4e90-bff8-b4f10bc20f10}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\shaders">
+      <UniqueIdentifier>{863bea8a-3423-462c-bac1-085f6814077c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\external\DirectXTex">
+      <UniqueIdentifier>{24a36dc2-c091-47b7-8416-b7d37df0bd6b}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="source\Core.cpp">
@@ -91,6 +97,12 @@
     </ClCompile>
     <ClCompile Include="source\Config.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="source\D3D11.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="source\external\DirextXTex\DDSTextureLoader11.cpp">
+      <Filter>Source Files\external\DirectXTex</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -181,10 +193,30 @@
     <ClInclude Include="..\..\include\Core\Config.hpp">
       <Filter>Source Files\include</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\include\Core\D3D11.hpp">
+      <Filter>Source Files\include</Filter>
+    </ClInclude>
+    <ClInclude Include="source\external\DirextXTex\DDSTextureLoader11.h">
+      <Filter>Source Files\external\DirectXTex</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\include\Core\Input.inl">
       <Filter>Source Files\include</Filter>
     </None>
+    <None Include="..\..\include\Core\ShaderRegistryHeader.inl">
+      <Filter>Source Files\include</Filter>
+    </None>
+    <None Include="..\..\include\Core\ShaderRegistryImpl.inl">
+      <Filter>Source Files\include</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="source\shaders\FullScreen.vs.hlsl">
+      <Filter>Source Files\shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="source\shaders\ToneMapping.ps.hlsl">
+      <Filter>Source Files\shaders</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>
