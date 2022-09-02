@@ -16,8 +16,11 @@ enum class PixelFormat : uint8
   RGB,
   BGR,
   Grayscale,
+  BC1
 };
 int8 toChannelCount(PixelFormat pixelFormat);
+int16 toPixelSizeInBits(PixelFormat);
+int64 calculatePitch(PixelFormat pixelFormat, int64 width);
 
 struct RgbPixel
 {
@@ -28,7 +31,7 @@ enum ChromaSubsampling : uint8
 {
   ChromaSubsampling_Invalid = 0,
 
-  ChromaSubsampling_444,
+  ChromaSubsampling_444, // aka no compression
   ChromaSubsampling_440,
   ChromaSubsampling_422,
   ChromaSubsampling_420,
@@ -56,9 +59,22 @@ struct Image
   ChromaSubsampling chromaSubsampling = ChromaSubsampling_Invalid;
 };
 
+class ImageEncoder
+{
+public:
+
+  /**
+   * Encodes using all CPU cores.
+   * @param source image to be compressed
+   * @param quality 0 .. 100
+   */
+  Image ToBC1Parallel(const Image& source, int64 quality);
+
+};
+
 // PNG ---------------------------------------------------------------------------------------------
 
-// TODO: Use Image struct instead
+// TODO: Use Image and ImageEncoder instead
 struct PngReadResult
 {
   PngReadResult() = default;
@@ -135,3 +151,7 @@ public:
   Image read(const byte* data, int64 dataSize, PixelFormat outputPixelFormat);
 
 };
+
+// DDS ---------------------------------------------------------------------------------------------
+
+void writeAsDds(const Image& image, const char* fileName);

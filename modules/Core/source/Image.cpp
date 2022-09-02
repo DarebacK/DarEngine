@@ -1,12 +1,14 @@
 #include "Core/Image.hpp"
 
 #include "Core/Core.hpp"
+#include "Core/Math.hpp"
 #include "Core/File.hpp"
 
 #include <external/lodepng.h>
 #include <external/turbojpeg.h>
-
 #include <external/libwebp/decode.h>
+#include "external/compressonator/compressonator.h"
+#include "external/compressonator/DDS_Helpers.h"
 
 // General -----------------------------------------------------------------------------------------
 
@@ -23,12 +25,38 @@ int8 toChannelCount(PixelFormat pixelFormat)
 
   case PixelFormat::RGB:
   case PixelFormat::BGR:
+  case PixelFormat::BC1:
     return 3;
 
   case PixelFormat::Grayscale:
     return 1;
 
   default: return 0;
+  }
+}
+
+int16 toPixelSizeInBits(PixelFormat pixelFormat)
+{
+  switch (pixelFormat)
+  {
+    case PixelFormat::RGBA:
+    case PixelFormat::BGRA:
+    case PixelFormat::ARGB:
+    case PixelFormat::ABGR:
+    case PixelFormat::CMYK:
+      return 32;
+
+    case PixelFormat::RGB:
+    case PixelFormat::BGR:
+      return 24;
+
+    case PixelFormat::BC1:
+      return 4;
+
+    case PixelFormat::Grayscale:
+      return 8;
+
+    default: return 0;
   }
 }
 
@@ -69,7 +97,67 @@ int64 Image::getDataSize() const
     return 0;
   }
 
-  return width * height * toChannelCount(pixelFormat);
+  return (width * height * toPixelSizeInBits(pixelFormat)) / 8;
+}
+
+int64 calculatePitch(PixelFormat pixelFormat, int64 width)
+{
+  return (width * toPixelSizeInBits(pixelFormat)) / 8;
+}
+
+static CMP_FORMAT toCmpFormat(PixelFormat format)
+{
+  switch (format)
+  {
+    case PixelFormat::RGBA: return CMP_FORMAT_RGBA_8888;
+    case PixelFormat::BGRA: return CMP_FORMAT_BGRA_8888;
+    case PixelFormat::ARGB: return CMP_FORMAT_ARGB_8888;
+    case PixelFormat::ABGR: return CMP_FORMAT_ABGR_8888;
+    case PixelFormat::RGB: return CMP_FORMAT_RGB_888;
+    case PixelFormat::BGR: return CMP_FORMAT_BGR_888;
+    case PixelFormat::Grayscale: return CMP_FORMAT_R_8;
+    case PixelFormat::BC1: return CMP_FORMAT_BC1;
+    default: return CMP_FORMAT_Unknown;
+  }
+}
+
+Image ImageEncoder::ToBC1Parallel(const Image& source, int64 quality)
+{
+  CMP_Texture sourceTexture{};
+  sourceTexture.dwSize = sizeof(CMP_Texture);
+  sourceTexture.dwWidth = source.width;
+  sourceTexture.dwHeight = source.height;
+  sourceTexture.dwPitch = calculatePitch(source.pixelFormat, source.width);
+  sourceTexture.format = toCmpFormat(source.pixelFormat);
+  sourceTexture.dwDataSize = source.getDataSize();
+  sourceTexture.pData = source.data;
+
+  CMP_Texture destinationTexture{};
+  destinationTexture.dwSize = sizeof(CMP_Texture);
+  destinationTexture.dwWidth = source.width;
+  destinationTexture.dwHeight = source.height;
+  destinationTexture.dwPitch = source.width;
+  destinationTexture.format = CMP_FORMAT_BC1;
+  destinationTexture.dwDataSize = CMP_CalculateBufferSize(&destinationTexture);
+  destinationTexture.pData = (CMP_BYTE*)malloc(destinationTexture.dwDataSize);
+
+  CMP_CompressOptions options{};
+  options.dwSize = sizeof(options);
+  options.fquality = std::clamp(quality, 0ll, 100ll) / 100.f;
+  options.dwnumThreads = 0;
+
+  if (CMP_ConvertTexture(&sourceTexture, &destinationTexture, &options, nullptr) != CMP_OK)
+  {
+    return Image{};
+  }
+  
+  Image destination;
+  destination.data = destinationTexture.pData;
+  destination.width = destinationTexture.dwWidth;
+  destination.height = destinationTexture.dwHeight;
+  destination.pixelFormat = PixelFormat::BC1;
+  destination.chromaSubsampling = ChromaSubsampling_444;
+  return destination;
 }
 
 // PNG ---------------------------------------------------------------------------------------------
@@ -264,13 +352,14 @@ Image JpegReader::read(const byte* jpegData, int64 jpegDataSize, PixelFormat out
   }
 
   Image image;
-  image.data = static_cast<byte*>(malloc(width * height * toChannelCount(outputPixelFormat)));
+  const int64 dataSize = (width * height * toPixelSizeInBits(outputPixelFormat)) / 8;
+  image.data = static_cast<byte*>(malloc(dataSize));
   image.width = width;
   image.height = height;
   image.pixelFormat = outputPixelFormat;
   image.chromaSubsampling = tjChromaSubsamplingToDarCromaSubsampling(chromaSubsampling);
 
-  if (tjDecompress2(decompressor, jpegData, unsigned long(jpegDataSize), image.data, width, 0, height, darPixelFormatToTjPixelFormat(outputPixelFormat), TJFLAG_ACCURATEDCT | TJFLAG_NOREALLOC) != 0)
+  if (tjDecompress2(decompressor, jpegData, unsigned long(jpegDataSize), image.data, width, 0, height, darPixelFormatToTjPixelFormat(outputPixelFormat), TJFLAG_NOREALLOC) != 0)
   {
     logError("Failed to decompress jpeg image. %s", tjGetErrorStr2(decompressor));
     return {};
@@ -345,7 +434,7 @@ Image WebpReader::read(const byte* data, int64 dataSize, PixelFormat outputPixel
     return Image();
   }
 
-  int outputStride = width * toChannelCount(outputPixelFormat);
+  int outputStride = (width * toPixelSizeInBits(outputPixelFormat)) / 8;
 
   Image image;
   image.data = (byte*)malloc(height * outputStride);
@@ -384,4 +473,18 @@ Image WebpReader::read(const byte* data, int64 dataSize, PixelFormat outputPixel
   }
 
   return image;
+}
+
+void writeAsDds(const Image& image, const char* fileName)
+{
+  CMP_Texture texture{};
+  texture.dwSize = sizeof(texture);
+  texture.dwWidth = image.width;
+  texture.dwHeight = image.height;
+  texture.dwPitch = calculatePitch(image.pixelFormat, image.width);
+  texture.format = toCmpFormat(image.pixelFormat);
+  texture.dwDataSize = image.getDataSize();
+  texture.pData = image.data;
+
+  SaveDDSFile(fileName, texture);
 }

@@ -15,6 +15,7 @@
     <ClCompile Include="source\Config.cpp" />
     <ClCompile Include="source\Core.cpp" />
     <ClCompile Include="source\D3D11.cpp" />
+    <ClCompile Include="source\external\compressonator\DDS_Helpers.cpp" />
     <ClCompile Include="source\external\DirextXTex\DDSTextureLoader11.cpp" />
     <ClCompile Include="source\external\lodepng.cpp" />
     <ClCompile Include="source\external\optick\optick_capi.cpp" />
@@ -52,6 +53,8 @@
     <ClInclude Include="..\..\include\external\libconfini\confini.h" />
     <ClInclude Include="..\..\include\external\optick\optick.config.h" />
     <ClInclude Include="..\..\include\external\optick\optick.h" />
+    <ClInclude Include="source\external\compressonator\compressonator.h" />
+    <ClInclude Include="source\external\compressonator\DDS_Helpers.h" />
     <ClInclude Include="source\external\DirextXTex\DDSTextureLoader11.h" />
     <ClInclude Include="source\external\optick\optick_capi.h" />
     <ClInclude Include="source\external\optick\optick_common.h" />
@@ -157,7 +160,7 @@
     </Link>
     <Lib>
       <AdditionalLibraryDirectories>$(ProjectDir)..\..\external\libraries\$(Platform);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>jpeg.lib;turbojpeg.lib;libwebp.lib;libwebpdemux.lib;libwebpmux.lib;libconfini.lib;d3d11.lib;D2d1.lib;Dwrite.lib;D3DCompiler.lib;</AdditionalDependencies>
+      <AdditionalDependencies>jpeg.lib;turbojpeg.lib;libwebp.lib;libwebpdemux.lib;libwebpmux.lib;libconfini.lib;d3d11.lib;D2d1.lib;Dwrite.lib;D3DCompiler.lib;Compressonator_MDd_DLL.lib</AdditionalDependencies>
     </Lib>
     <PostBuildEvent>
       <Command>xcopy "$(ProjectDir)..\..\external\binaries" "$(OutDir)" /d /i /y /r</Command>
@@ -186,7 +189,7 @@
     </Link>
     <Lib>
       <AdditionalLibraryDirectories>$(ProjectDir)..\..\external\libraries\$(Platform);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>jpeg.lib;turbojpeg.lib;libwebp.lib;libwebpdemux.lib;libwebpmux.lib;libconfini.lib;d3d11.lib;D2d1.lib;Dwrite.lib;D3DCompiler.lib;</AdditionalDependencies>
+      <AdditionalDependencies>jpeg.lib;turbojpeg.lib;libwebp.lib;libwebpdemux.lib;libwebpmux.lib;libconfini.lib;d3d11.lib;D2d1.lib;Dwrite.lib;D3DCompiler.lib;Compressonator_MD_DLL.lib</AdditionalDependencies>
     </Lib>
     <PostBuildEvent>
       <Command>xcopy "$(ProjectDir)..\..\external\binaries" "$(OutDir)" /d /i /y /r</Command>

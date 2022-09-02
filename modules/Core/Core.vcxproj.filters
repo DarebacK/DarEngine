@@ -33,6 +33,9 @@
     <Filter Include="Source Files\external\DirectXTex">
       <UniqueIdentifier>{24a36dc2-c091-47b7-8416-b7d37df0bd6b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\external\compressonator">
+      <UniqueIdentifier>{69f47535-23d2-4920-8c42-2263881deacd}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="source\Core.cpp">
@@ -103,6 +106,9 @@
     </ClCompile>
     <ClCompile Include="source\external\DirextXTex\DDSTextureLoader11.cpp">
       <Filter>Source Files\external\DirectXTex</Filter>
+    </ClCompile>
+    <ClCompile Include="source\external\compressonator\DDS_Helpers.cpp">
+      <Filter>Source Files\external\compressonator</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -198,6 +204,12 @@
     </ClInclude>
     <ClInclude Include="source\external\DirextXTex\DDSTextureLoader11.h">
       <Filter>Source Files\external\DirectXTex</Filter>
+    </ClInclude>
+    <ClInclude Include="source\external\compressonator\compressonator.h">
+      <Filter>Source Files\external\compressonator</Filter>
+    </ClInclude>
+    <ClInclude Include="source\external\compressonator\DDS_Helpers.h">
+      <Filter>Source Files\external\compressonator</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
