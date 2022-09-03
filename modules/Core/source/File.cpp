@@ -155,3 +155,28 @@ void readFileAsync(std::wstring&& path, std::function<void(ReadFileAsyncResult& 
 
   SetEvent(newFileRequestEvent);
 }
+
+bool tryWriteFile(const wchar_t* filePath, const byte* data, int64 dataSize)
+{
+  HANDLE file = CreateFile(filePath, GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
+  if (file == INVALID_HANDLE_VALUE)
+  {
+    return false;
+  }
+
+  DWORD bytesWritten;
+  if (!WriteFile(file, data, dataSize, &bytesWritten, nullptr))
+  {
+    CloseHandle(file);
+    return false;
+  }
+
+  if(bytesWritten < dataSize)
+  {
+    CloseHandle(file);
+    return false;
+  }
+
+  CloseHandle(file);
+  return true;
+}

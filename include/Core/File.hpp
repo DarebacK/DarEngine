@@ -5,8 +5,6 @@
 
 #include <vector>
 
-bool tryReadEntireFile(const wchar_t* fileName, std::vector<byte>& buffer);
-
 struct ReadFileAsyncResult
 {
   enum class Status
@@ -19,6 +17,9 @@ struct ReadFileAsyncResult
 };
 // Callback is called on the file thread. Don't do much of work there to not delay any additional IO.
 void readFileAsync(std::wstring&& path, std::function<void(ReadFileAsyncResult& result)>&& callback);
+bool tryReadEntireFile(const wchar_t* fileName, std::vector<byte>& buffer);
+
+bool tryWriteFile(const wchar_t* filePath, const byte* data, int64 dataSize);
 
 void initializeFileSystem();
 void deinitializeFileSystem();
