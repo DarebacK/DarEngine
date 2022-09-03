@@ -41,7 +41,7 @@ unsigned long fileThreadMain(void* parameter)
   while (!threadShouldStop)
   {
     {
-      TRACE_SCOPE("WaitForRequests");
+      TRACE_SCOPE("waitForRequests");
 
       DWORD waitResult = WaitForSingleObject(newFileRequestEvent, INFINITE);
       switch (waitResult)
@@ -65,7 +65,7 @@ unsigned long fileThreadMain(void* parameter)
     {
       ReadFileAsyncRequest request;
       {
-        TRACE_SCOPE("PopRequest");
+        TRACE_SCOPE("popRequest");
         {
           std::lock_guard lock{ readFileAsyncRequestsMutex };
           request = std::move(readFileAsyncRequests.front());
@@ -85,7 +85,7 @@ unsigned long fileThreadMain(void* parameter)
       }
 
       {
-        TRACE_SCOPE("ReadFileAsyncCallback");
+        TRACE_SCOPE("readFileAsyncCallback");
         request.callback(result);
       }
     } while (remainingRequests > 0 && !threadShouldStop);
