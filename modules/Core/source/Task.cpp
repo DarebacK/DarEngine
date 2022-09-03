@@ -427,7 +427,7 @@ DWORD TaskManager::workerThreadMain(LPVOID parameter)
 
   {
     char threadName[64];
-    sprintf_s(threadName, "TaskManagerWorker %lld", threadContext.index);
+    sprintf_s(threadName, "TaskWorker %lld", threadContext.index);
     TRACE_THREAD(threadName);
   }
 
