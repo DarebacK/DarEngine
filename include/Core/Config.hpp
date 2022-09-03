@@ -8,6 +8,8 @@
 
 struct ConfigKeyValueNode
 {
+  bool isKey(const char* inKey) const;
+
   bool toBool() const;
   int64 toInt() const;
   float toFloat() const;

@@ -4,6 +4,11 @@
 
 #include "external/libconfini/confini.h"
 
+bool ConfigKeyValueNode::isKey(const char* inKey) const
+{
+  return strcmp(inKey, key) == 0;
+}
+
 bool ConfigKeyValueNode::toBool() const
 {
   int retVal = ini_get_bool(value, -1);
@@ -23,7 +28,7 @@ int64 ConfigKeyValueNode::toInt() const
 
 float ConfigKeyValueNode::toFloat() const
 {
-  return ini_get_double(value);
+  return (float)ini_get_double(value);
 }
 
 double ConfigKeyValueNode::toDouble() const
