@@ -80,7 +80,7 @@ bool tryParseConfig(char* data, int64 dataLength, const ConfigKeyValueNodeCallba
     return false;
   }
 
-  return libconfiniParse(data, dataLength, parseKeyValueCallback, (void*)&nodeCallback);
+  return libconfiniParse(data, dataLength - 1, parseKeyValueCallback, (void*)&nodeCallback);
 }
 
 struct SectionOrKeyValueCallbackContext
@@ -124,5 +124,5 @@ bool tryParseConfig(char* data, int64 dataLength, const ConfigSectionNodeCallbac
   }
 
   SectionOrKeyValueCallbackContext context{ sectionNodeCallback, keyValueNodeCallback };
-  return libconfiniParse(data, dataLength, parseSectionOrKeyValueCallback, (void*)&context);
+  return libconfiniParse(data, dataLength - 1, parseSectionOrKeyValueCallback, (void*)&context);
 }
