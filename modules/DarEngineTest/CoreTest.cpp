@@ -39,7 +39,7 @@ TEST(Config, tryParseConfigSimpleValid)
 {
   std::string config = "widthInMeters=1565430\nheightInMeters = 1878516 ";
   int valueCounter = 0;
-  EXPECT_TRUE(tryParseConfig(config.data(), config.length() - 1, 
+  EXPECT_TRUE(tryParseConfig(config.data(), config.length(), 
     [&valueCounter](const ConfigKeyValueNode& node) -> bool
     {
       if (valueCounter == 0)
