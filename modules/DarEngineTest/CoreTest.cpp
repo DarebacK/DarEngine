@@ -2,6 +2,7 @@
 
 #include "Core/Memory.hpp"
 #include "Core/Config.hpp"
+#include "Core/Math.hpp"
 
 // Memory tests ************************************************************************************
 
@@ -61,4 +62,75 @@ TEST(Config, tryParseConfigSimpleValid)
     }
   ));
   EXPECT_EQ(valueCounter, 2);
+}
+
+// Math tests **************************************************************************************
+
+TEST(Math, Mat4fMultiplicationMat4f)
+{
+    Mat4f a{{
+        { 1.f,  2.f,  3.f,  4.f},
+        { 5.f,  6.f,  7.f,  8.f},
+        { 9.f, 10.f, 11.f, 12.f},
+        {13.f, 14.f, 15.f, 16.f}
+    }};
+    Mat4f b{{ 
+        { 17.f, 18.f, 19.f, 20.f},
+        { 21.f, 22.f, 23.f, 24.f},
+        { 25.f, 26.f, 27.f, 28.f},
+        { 29.f, 30.f, 31.f, 32.f}
+    }};
+
+    Mat4f c = a * b;
+
+    EXPECT_EQ(c[0][0], 250.f);
+    EXPECT_EQ(c[0][1], 260.f);
+    EXPECT_EQ(c[0][2], 270.f);
+    EXPECT_EQ(c[0][3], 280.f);
+    EXPECT_EQ(c[1][0], 618.f);
+    EXPECT_EQ(c[1][1], 644.f);
+    EXPECT_EQ(c[1][2], 670.f);
+    EXPECT_EQ(c[1][3], 696.f);
+    EXPECT_EQ(c[2][0], 986.f);
+    EXPECT_EQ(c[2][1], 1028.f);
+    EXPECT_EQ(c[2][2], 1070.f);
+    EXPECT_EQ(c[2][3], 1112.f);
+    EXPECT_EQ(c[3][0], 1354.f);
+    EXPECT_EQ(c[3][1], 1412.f);
+    EXPECT_EQ(c[3][2], 1470.f);
+    EXPECT_EQ(c[3][3], 1528.f);
+}
+TEST(Math, Mat4fMultiplicationMat4x3f)
+{
+    Mat4f a{ {
+        { 1.f,  2.f,  3.f,  4.f},
+        { 5.f,  6.f,  7.f,  8.f},
+        { 9.f, 10.f, 11.f, 12.f},
+        {13.f, 14.f, 15.f, 16.f}
+    } };
+    Mat4x3f b{ {
+        { 17.f, 18.f, 19.f},
+        { 20.f, 21.f, 22.f},
+        { 23.f, 24.f, 25.f},
+        { 26.f, 27.f, 28.f}
+    } };
+
+    Mat4f c = a * b;
+
+    EXPECT_EQ(c[0][0], 230.f);
+    EXPECT_EQ(c[0][1], 240.f);
+    EXPECT_EQ(c[0][2], 250.f);
+    EXPECT_EQ(c[0][3], 4.f);
+    EXPECT_EQ(c[1][0], 574.f);
+    EXPECT_EQ(c[1][1], 600.f);
+    EXPECT_EQ(c[1][2], 626.f);
+    EXPECT_EQ(c[1][3], 8.f);
+    EXPECT_EQ(c[2][0], 918.f);
+    EXPECT_EQ(c[2][1], 960.f);
+    EXPECT_EQ(c[2][2], 1002.f);
+    EXPECT_EQ(c[2][3], 12.f);
+    EXPECT_EQ(c[3][0], 1262.f);
+    EXPECT_EQ(c[3][1], 1320.f);
+    EXPECT_EQ(c[3][2], 1378.f);
+    EXPECT_EQ(c[3][3], 16.f);
 }
