@@ -19,7 +19,7 @@
 // Individual assets/resources (Texture2D, Config) will be initialized based on a meta file that will be present next to the loaded asset file.
 // That meta file is separate from the asset file to allow VCS diffs. The meta file will be an INI file
 
-void initializeAssetSystem();
+bool tryInitializeAssetSystem();
 
 class AssetDirectoryRef
 {
