@@ -180,3 +180,8 @@ bool tryWriteFile(const wchar_t* filePath, const byte* data, int64 dataSize)
   CloseHandle(file);
   return true;
 }
+
+bool fileExists(const wchar_t* path)
+{
+  return GetFileAttributes(path) != INVALID_FILE_ATTRIBUTES;
+}

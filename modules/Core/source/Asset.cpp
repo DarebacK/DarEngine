@@ -13,7 +13,7 @@ struct AssetDirectory
 
 AssetDirectory rootDirectory;
 
-static const wchar_t* getFileExtension(const wchar_t* fileName)
+static wchar_t* getFileExtension(wchar_t* fileName)
 {
   int32 characterIndex = 0;
   int32 lastDotIndex = -1;
@@ -66,7 +66,7 @@ static bool tryTraverseDirectory(wchar_t* wildcardPathBuffer, int64 wildcardPath
       const wchar_t* fileExtension = getFileExtension(findData->cFileName);
       if (!fileExtension)
       {
-        wchar_t filePath[260];
+        wchar_t filePath[MAX_PATH];
         const int64 pathLength = wildcardPathLength - 1;
         memcpy(filePath, wildcardPathBuffer, sizeof(wchar_t) * pathLength);
         swprintf(filePath + pathLength, arrayLength(filePath), L"%s", findData->cFileName);
@@ -79,7 +79,24 @@ static bool tryTraverseDirectory(wchar_t* wildcardPathBuffer, int64 wildcardPath
         continue;
       }
 
-      //TODO: check if meta file exists for this asset file
+      wchar_t metaFilePath[MAX_PATH];
+      const int64 pathLength = wildcardPathLength - 1;
+      memcpy(metaFilePath, wildcardPathBuffer, sizeof(wchar_t) * pathLength);
+      const int64 fileNameLength = wcslen(findData->cFileName);
+      memcpy(metaFilePath + pathLength, findData->cFileName, sizeof(wchar_t) * fileNameLength);
+      metaFilePath[pathLength + fileNameLength] = L'\0';
+      wchar_t* metaFilePathExtension = getFileExtension(metaFilePath);
+      memcpy(metaFilePathExtension, L"meta\0", sizeof(wchar_t) * 5);
+      if (!fileExists(metaFilePath))
+      {
+        const int64 fileExtensionLength = static_cast<int64>(wcslen(fileExtension));
+        memcpy(metaFilePathExtension, fileExtension, fileExtensionLength);
+        metaFilePathExtension[fileExtensionLength] = L'0';
+        swprintf(metaFilePathExtension, MAX_PATH - pathLength - fileNameLength, L"%s", fileExtension);
+        logError("File %S doesn't have a corresponding meta file.", metaFilePath);
+        DebugBreak();
+        continue;
+      }
 
       parentDirectory->assetFileNames.emplace_back(findData->cFileName);
     }

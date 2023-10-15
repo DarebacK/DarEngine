@@ -21,6 +21,8 @@ bool tryReadEntireFile(const wchar_t* fileName, std::vector<byte>& buffer);
 
 bool tryWriteFile(const wchar_t* filePath, const byte* data, int64 dataSize);
 
+bool fileExists(const wchar_t* path);
+
 void initializeFileSystem();
 void deinitializeFileSystem();
 class FileSystemGuard
