@@ -24,7 +24,7 @@ namespace D3D11
     const D3D11_INPUT_ELEMENT_DESC* inputElementDescriptions, uint64 inputElementDescriptionCount, CComPtr<ID3D11VertexShader>& outVertexShader, CComPtr<ID3D11InputLayout>& outInputLayout)
   {
     TCHAR filePath[128];
-    int64 filePathIndex = combine(shaderDirectoryPath, shaderName, filePath);
+    int64 filePathIndex = combine(shaderDirectoryPath, L'\\', shaderName, filePath);
     filePath[filePathIndex++] = L'.';
     filePath[filePathIndex++] = L'v';
     filePath[filePathIndex++] = L's';
@@ -55,7 +55,7 @@ namespace D3D11
   void loadPixelShader(LPCTSTR shaderName, LPCTSTR shaderDirectoryPath, std::vector<byte>& shaderBytecode, CComPtr<ID3D11PixelShader>& outPixelShader)
   {
     TCHAR filePath[128];
-    int64 filePathIndex = combine(shaderDirectoryPath, shaderName, filePath);
+    int64 filePathIndex = combine(shaderDirectoryPath, L'\\', shaderName, filePath);
     filePath[filePathIndex++] = L'.';
     filePath[filePathIndex++] = L'p';
     filePath[filePathIndex++] = L's';
