@@ -8,12 +8,34 @@ struct AssetDirectory
 {
   std::wstring name;
   std::vector<AssetDirectory> directories;
-  std::vector<Asset*> assets;
+  std::vector<std::wstring> assetFileNames;
 };
 
 AssetDirectory rootDirectory;
 
-bool tryTraverseDirectory(wchar_t* wildcardPathBuffer, int64 wildcardPathLength, WIN32_FIND_DATA* findData)
+static const wchar_t* getFileExtension(const wchar_t* fileName)
+{
+  int32 characterIndex = 0;
+  int32 lastDotIndex = -1;
+  while (fileName[characterIndex] != L'\0')
+  {
+    wchar_t character = fileName[characterIndex];
+    switch (character)
+    {
+    case L'.': lastDotIndex = characterIndex;
+    }
+    characterIndex++;
+  }
+
+  if (lastDotIndex <= 0 || (lastDotIndex == characterIndex - 1))
+  {
+    return nullptr;
+  }
+
+  return fileName + lastDotIndex + 1;
+}
+
+static bool tryTraverseDirectory(wchar_t* wildcardPathBuffer, int64 wildcardPathLength, AssetDirectory* parentDirectory, WIN32_FIND_DATA* findData)
 {
   HANDLE findHandle = FindFirstFile(wildcardPathBuffer, findData);
   if (!findHandle)
@@ -30,25 +52,36 @@ bool tryTraverseDirectory(wchar_t* wildcardPathBuffer, int64 wildcardPathLength,
     }
     else if (findData->dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
     {
-      logInfo("Traversing directory %S", findData->cFileName);
       // Replace the wildcard with the directory name, followed by a wildcard
       swprintf(wildcardPathBuffer + wildcardPathLength - 1, MAX_PATH, L"%s\\*", findData->cFileName);
       const int64 subdirectoryWildcardPathLength = wildcardPathLength + wcslen(findData->cFileName) + 1;
 
-      // TODO: create asset directory
+      AssetDirectory& directory = parentDirectory->directories.emplace_back();
+      directory.name = findData->cFileName;
 
-      tryTraverseDirectory(wildcardPathBuffer, subdirectoryWildcardPathLength, findData);
+      tryTraverseDirectory(wildcardPathBuffer, subdirectoryWildcardPathLength, &directory, findData);
     }
     else
     {
-      // TODO: check whether it is the .meta file. If yes then create the Asset.
+      const wchar_t* fileExtension = getFileExtension(findData->cFileName);
+      if (!fileExtension)
+      {
+        wchar_t filePath[260];
+        const int64 pathLength = wildcardPathLength - 1;
+        memcpy(filePath, wildcardPathBuffer, sizeof(wchar_t) * pathLength);
+        swprintf(filePath + pathLength, arrayLength(filePath), L"%s", findData->cFileName);
+        logError("File %S is not a valid asset file.", filePath);
+        continue;
+      }
 
-      wchar_t filePath[260];
-      const int64 pathLength = wildcardPathLength - 1;
-      memcpy(filePath, wildcardPathBuffer, sizeof(wchar_t) * pathLength);
-      swprintf(filePath + pathLength, arrayLength(filePath), L"%s", findData->cFileName);
+      if (wcscmp(fileExtension, L"meta") == 0)
+      {
+        continue;
+      }
 
-      logInfo("Traversing file %S", filePath);
+      //TODO: check if meta file exists for this asset file
+
+      parentDirectory->assetFileNames.emplace_back(findData->cFileName);
     }
   }
 
@@ -64,7 +97,7 @@ bool tryInitializeAssetSystem()
   wchar_t wildcardPath[MAX_PATH];
   swprintf(wildcardPath, arrayLength(wildcardPath), L"assets\\*");
   const int64 wildcardPathLength = wcslen(wildcardPath);
-  if (!tryTraverseDirectory(wildcardPath, wildcardPathLength, &findData))
+  if (!tryTraverseDirectory(wildcardPath, wildcardPathLength, &rootDirectory, &findData))
   {
     logError("Couldn't find the assets directory.");
     return false;
