@@ -73,14 +73,11 @@ static int parseKeyValueCallback(IniDispatch* dispatch, void* userData)
   return false;
 }
 
-bool tryParseConfig(char* data, int64 dataLength, const ConfigKeyValueNodeCallback& nodeCallback)
+bool tryParseConfig(char* data, int64 dataLength, const ConfigKeyValueNodeCallback& keyValueNodeCallback)
 {
-  if (!data || dataLength <= 0)
-  {
-    return false;
-  }
+  ensureTrue(data && dataLength > 0, false);
 
-  return libconfiniParse(data, dataLength - 1, parseKeyValueCallback, (void*)&nodeCallback);
+  return libconfiniParse(data, dataLength - 1, parseKeyValueCallback, (void*)&keyValueNodeCallback);
 }
 
 struct SectionOrKeyValueCallbackContext
@@ -118,10 +115,7 @@ static int parseSectionOrKeyValueCallback(IniDispatch* dispatch, void* userData)
 
 bool tryParseConfig(char* data, int64 dataLength, const ConfigSectionNodeCallback& sectionNodeCallback, const ConfigKeyValueNodeCallback& keyValueNodeCallback)
 {
-  if (!data || dataLength <= 0)
-  {
-    return false;
-  }
+  ensureTrue(data && dataLength > 0, false);
 
   SectionOrKeyValueCallbackContext context{ sectionNodeCallback, keyValueNodeCallback };
   return libconfiniParse(data, dataLength - 1, parseSectionOrKeyValueCallback, (void*)&context);

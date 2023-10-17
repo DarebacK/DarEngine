@@ -47,11 +47,37 @@ using uint64 = uint64_t; static_assert(sizeof(uint64) == 8);
 #define arrayLength(arr) (sizeof(arr) / sizeof(arr[0]))
 
 #ifdef DAR_DEBUG
+  #define debugBreak() __debugbreak()
+
   #undef assert
   #define assert(condition) \
     if(!(condition)) { \
       logError("Assertion failed: %s", #condition); \
       *(int*)0 = 0; \
+    }
+  
+  #define ensure(condition) \
+    [conditionResult = condition]() -> bool { \
+      static bool wasAlreadyTriggered = false; \
+      if(!(conditionResult) && !wasAlreadyTriggered) \
+      { \
+        debugBreak(); \
+        wasAlreadyTriggered = true; \
+      } \
+      \
+      return conditionResult; \
+    }()
+
+  #define ensureTrue(condition, ...) \
+    { \
+      static bool wasAlreadyTriggered = false;  \
+      if(!(condition) && !wasAlreadyTriggered) \
+      { \
+        debugBreak(); \
+        wasAlreadyTriggered = true; \
+      } \
+      \
+      if(!(condition)) return __VA_ARGS__; \
     }
 
   extern wchar_t _debugText[4096];
@@ -67,8 +93,11 @@ using uint64 = uint64_t; static_assert(sizeof(uint64) == 8);
     if(newStrLength > 0) _debugStringImpl(newStr, newStrLength); \
   }
 #else 
+  #define debugBreak()
   #undef assert
   #define assert(condition) ((void)0)
+  #define ensure(condition) condition
+  #define ensureTrue(condition, ...) if(!(condition)) return __VA_ARGS__; 
   #define debugText(...)
   #define debugResetText()
 #endif

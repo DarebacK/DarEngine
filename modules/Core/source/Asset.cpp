@@ -9,6 +9,9 @@ struct AssetDirectory
   std::wstring name;
   std::vector<AssetDirectory> directories;
   std::vector<std::wstring> assetFileNames;
+  // TODO: How to handle loaded assets? Can we assume that this will be handled only by the game thread?
+  //       If not, then maybe we can have a vector of Asset* pointers (null for unloaded, non-null for loaded).
+  //       Using atomic compare+swap any thread could initialize the asset (D3dDevice is thread safe, D3dDeviceContext is not which is fine)
 };
 
 AssetDirectory rootDirectory;
@@ -87,14 +90,13 @@ static bool tryTraverseDirectory(wchar_t* wildcardPathBuffer, int64 wildcardPath
       metaFilePath[pathLength + fileNameLength] = L'\0';
       wchar_t* metaFilePathExtension = getFileExtension(metaFilePath);
       memcpy(metaFilePathExtension, L"meta\0", sizeof(wchar_t) * 5);
-      if (!fileExists(metaFilePath))
+      if (!ensure(fileExists(metaFilePath)))
       {
         const int64 fileExtensionLength = static_cast<int64>(wcslen(fileExtension));
         memcpy(metaFilePathExtension, fileExtension, fileExtensionLength);
         metaFilePathExtension[fileExtensionLength] = L'0';
         swprintf(metaFilePathExtension, MAX_PATH - pathLength - fileNameLength, L"%s", fileExtension);
         logError("File %S doesn't have a corresponding meta file.", metaFilePath);
-        DebugBreak();
         continue;
       }
 
