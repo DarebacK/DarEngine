@@ -57,7 +57,7 @@ using uint64 = uint64_t; static_assert(sizeof(uint64) == 8);
     }
   
   #define ensure(condition) \
-    [conditionResult = condition]() -> bool { \
+    [conditionResult = (condition)]() -> bool { \
       static bool wasAlreadyTriggered = false; \
       if(!(conditionResult) && !wasAlreadyTriggered) \
       { \
@@ -67,6 +67,8 @@ using uint64 = uint64_t; static_assert(sizeof(uint64) == 8);
       \
       return conditionResult; \
     }()
+
+  #define ensureNoEntry() ensure(false)
 
   #define ensureTrue(condition, ...) \
     { \
