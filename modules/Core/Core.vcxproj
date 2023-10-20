@@ -12,6 +12,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="source\Asset.cpp" />
+    <ClCompile Include="source\Concurrency.cpp" />
     <ClCompile Include="source\Config.cpp" />
     <ClCompile Include="source\Core.cpp" />
     <ClCompile Include="source\D3D11.cpp" />

@@ -4,6 +4,9 @@
 
 #include "Core/Core.hpp"
 
+extern uint32 mainThreadId;
+bool isInMainThread();
+
 enum class ThreadType : int8
 {
   Unknown = 0,

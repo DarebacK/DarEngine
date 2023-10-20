@@ -110,6 +110,9 @@
     <ClCompile Include="source\external\compressonator\DDS_Helpers.cpp">
       <Filter>Source Files\external\compressonator</Filter>
     </ClCompile>
+    <ClCompile Include="source\Concurrency.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\include\Core\Core.hpp">

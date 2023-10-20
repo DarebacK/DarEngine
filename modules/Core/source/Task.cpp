@@ -118,6 +118,8 @@ void TaskManager::initialize()
     return;
   }
 
+  mainThreadId = GetCurrentThreadId();
+
   SYSTEM_INFO systemInfo;
   GetSystemInfo(&systemInfo);
   const int workerThreadCount = std::max(int(systemInfo.dwNumberOfProcessors - 1), 1);
