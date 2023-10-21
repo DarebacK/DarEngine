@@ -57,24 +57,36 @@ public:
   AssetType assetType = AssetType::Unknown;
 
   void ref();
-  void unref();
+  void unref();  // Call destructor based on type if refCount reaches 0.
 
 protected:
 
   Asset() = default;
   Asset(const Asset& other) = delete;
   Asset(Asset&& other) = delete;
-  ~Asset(); // Call destructor based on type.
+  ~Asset();
 
 private:
 
   std::atomic<int32> refCount = 0;
 };
 
+class Config : public Asset
+{
+public:
+  
+  Config() { assetType = AssetType::Config; }
+
+  Ref<TaskEvent> initializeAsync(byte* metaData, int64 metaDataLength, byte* fileData, byte* fileDataLength);
+
+};
+
 class Texture2D : public Asset
 {
 public:
 
-  static Ref<Texture2D> create();
+  Texture2D() { assetType = AssetType::Texture2D; }
+
+  Ref<TaskEvent> initializeAsync(byte* metaData, int64 metaDataLength, byte* fileData, byte* fileDataLength);
 
 };

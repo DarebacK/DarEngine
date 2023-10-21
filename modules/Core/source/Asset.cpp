@@ -3,16 +3,22 @@
 #include "Core/Asset.hpp"
 
 #include "Core/File.hpp"
+#include "Core/String.hpp"
+#include "Core/Config.hpp"
 
-struct AssetDirectory
+AssetType assetTypeStringToEnum(const char* string)
 {
-  std::wstring name;
-  std::vector<AssetDirectory> directories;
-  std::vector<std::wstring> assetFileNames;
-  std::vector<Asset*> assets; // Indices correspond to assetFileNames indices, is nullptr for not loaded assets.
-};
+  if (isEqual(string, "Texture2D"))
+  {
+    return AssetType::Texture2D;
+  }
+  else if(isEqual(string, "Config"))
+  {
+    return AssetType::Config;
+  }
 
-AssetDirectory rootDirectory;
+  return AssetType::Unknown;
+}
 
 static wchar_t* getFileExtension(wchar_t* fileName)
 {
@@ -35,6 +41,79 @@ static wchar_t* getFileExtension(wchar_t* fileName)
 
   return fileName + lastDotIndex + 1;
 }
+
+void Asset::ref()
+{
+  refCount++;
+}
+
+void Asset::unref()
+{
+  refCount--;
+  // TODO: delete if refCount == 0
+}
+
+struct AssetDirectory
+{
+  std::wstring name;
+  std::wstring path;
+  std::vector<AssetDirectory> directories;
+  std::vector<std::wstring> assetFileNames;
+  std::vector<Asset*> assets; // Indices correspond to assetFileNames indices, is nullptr for not loaded assets.
+
+  void loadAssets()
+  {
+    for (int32 assetIndex = 0; assetIndex < assets.size(); assetIndex++)
+    {
+      Asset* asset = assets[assetIndex];
+      if (asset)
+      {
+        asset->ref();
+        continue;
+      }
+
+      // TODO: asynchronize the loading and initialization
+
+      wchar_t assetPath[MAX_PATH];
+      swprintf(assetPath, arrayLength(assetPath), L"%s\\%s", path.c_str(), assetFileNames[assetIndex].c_str());
+      std::vector<byte> assetFileData;
+      ensure(tryReadEntireFile(assetPath, assetFileData));
+
+      wchar_t* fileExtension = getFileExtension(assetPath);
+      memcpy(fileExtension, L"meta\0", sizeof(wchar_t) * 5);
+      std::vector<byte> assetMetaFileData;
+      ensure(tryReadEntireFile(assetPath, assetMetaFileData));
+
+      AssetType assetType = AssetType::Unknown;
+      char* assetMetaData = reinterpret_cast<char*>(assetMetaFileData.data());
+      if (!ensure(tryParseConfig(assetMetaData, assetMetaFileData.size(), [&assetType](const ConfigKeyValueNode& node) -> bool {
+          if (node.isKey("AssetType"))
+          {
+            assetType = assetTypeStringToEnum(node.value);
+            return true;
+          }
+
+          return false;
+        })))
+      {
+        continue;
+      }
+      if (!ensure(assetType != AssetType::Unknown))
+      {
+        continue;
+      }
+
+      // TODO: initialize the asset
+    }
+
+    for (AssetDirectory& directory : directories)
+    {
+      directory.loadAssets();
+    }
+  }
+};
+
+AssetDirectory rootDirectory;
 
 static bool tryTraverseDirectory(wchar_t* wildcardPathBuffer, int64 wildcardPathLength, AssetDirectory* parentDirectory, WIN32_FIND_DATA* findData)
 {
@@ -59,6 +138,7 @@ static bool tryTraverseDirectory(wchar_t* wildcardPathBuffer, int64 wildcardPath
 
       AssetDirectory& directory = parentDirectory->directories.emplace_back();
       directory.name = findData->cFileName;
+      directory.path = std::wstring(wildcardPathBuffer, wildcardPathBuffer + subdirectoryWildcardPathLength - 2);
 
       tryTraverseDirectory(wildcardPathBuffer, subdirectoryWildcardPathLength, &directory, findData);
     }
@@ -189,7 +269,7 @@ AssetDirectoryRef::AssetDirectoryRef(const wchar_t* path)
 {
   ensureTrue(directory != nullptr);
 
-
+  directory->loadAssets();
   // TODO: Traverse the subtree, increase ref count and add each assets loaded task event to an array, 
   // which will be a prerequisite to a task that sets the returned task event ref to completed.
 }
