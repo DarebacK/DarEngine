@@ -98,7 +98,8 @@ using uint64 = uint64_t; static_assert(sizeof(uint64) == 8);
   #define debugBreak()
   #undef assert
   #define assert(condition) ((void)0)
-  #define ensure(condition) condition
+  #define ensure(condition) (condition)
+  #define ensureNoEntry()
   #define ensureTrue(condition, ...) if(!(condition)) return __VA_ARGS__; 
   #define debugText(...)
   #define debugResetText()
