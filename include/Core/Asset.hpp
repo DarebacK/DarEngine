@@ -25,6 +25,8 @@ class AssetDirectoryRef
 {
 public:
 
+  // Increases the ref count of assets in the directory and it's subdirectories, potentially causing their async loading and initialization.
+  AssetDirectoryRef(const wchar_t* path);
   AssetDirectoryRef(const AssetDirectoryRef& other);
   AssetDirectoryRef(AssetDirectoryRef&& other);
   ~AssetDirectoryRef();
@@ -36,13 +38,8 @@ public:
 
 private:
 
-  AssetDirectoryRef(class AssetDirectory* inDirectory) : directory(inDirectory) {}
-  friend AssetDirectoryRef loadAssetDirectory(const wchar_t* path);
-
   class AssetDirectory* directory = nullptr;
 };
-// Increases the ref count of assets in the directory and it's subdirectories, potentially causing their async loading and initialization.
-AssetDirectoryRef loadAssetDirectory(const wchar_t* path);
 
 // TODO: Asset types could be defines in a AssetType.inl with macros, where the macro can once be used here to define enum values and also in ~Asset()
 enum class AssetType : uint16

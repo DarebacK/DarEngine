@@ -184,20 +184,16 @@ AssetDirectory* findDirectory(const wchar_t* path)
   return nullptr;
 }
 
-AssetDirectoryRef::~AssetDirectoryRef()
+AssetDirectoryRef::AssetDirectoryRef(const wchar_t* path)
+  : directory(findDirectory(path))
 {
-  // TODO: Traverse the subtree, decrease ref count.
-}
-AssetDirectoryRef loadAssetDirectory(const wchar_t* path)
-{
-  ensureTrue(isInMainThread(), AssetDirectoryRef(nullptr));
-  ensureTrue(path != nullptr, AssetDirectoryRef(nullptr));
+  ensureTrue(directory != nullptr);
 
-  AssetDirectory* directory = findDirectory(path);
-  ensureTrue(directory != nullptr, AssetDirectoryRef(nullptr));
 
   // TODO: Traverse the subtree, increase ref count and add each assets loaded task event to an array, 
   // which will be a prerequisite to a task that sets the returned task event ref to completed.
-
-  return AssetDirectoryRef(directory);
+}
+AssetDirectoryRef::~AssetDirectoryRef()
+{
+  // TODO: Traverse the subtree, decrease ref count.
 }
