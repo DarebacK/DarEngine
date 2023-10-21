@@ -9,9 +9,7 @@ struct AssetDirectory
   std::wstring name;
   std::vector<AssetDirectory> directories;
   std::vector<std::wstring> assetFileNames;
-  // TODO: How to handle loaded assets? Can we assume that this will be handled only by the game thread?
-  //       If not, then maybe we can have a vector of Asset* pointers (null for unloaded, non-null for loaded).
-  //       Using atomic compare+swap any thread could initialize the asset (D3dDevice is thread safe, D3dDeviceContext is not which is fine)
+  std::vector<Asset*> assets; // Indices correspond to assetFileNames indices, is nullptr for not loaded assets.
 };
 
 AssetDirectory rootDirectory;
@@ -106,12 +104,13 @@ static bool tryTraverseDirectory(wchar_t* wildcardPathBuffer, int64 wildcardPath
 
   FindClose(findHandle);
 
+  parentDirectory->assets.resize(parentDirectory->assetFileNames.size(), nullptr);
+
   return true;
 }
 
 bool tryInitializeAssetSystem()
 {
-  // TODO: traverse the assets directory and create the AssetDirectory tree.
   WIN32_FIND_DATA findData;
   wchar_t wildcardPath[MAX_PATH];
   swprintf(wildcardPath, arrayLength(wildcardPath), L"assets\\*");
@@ -125,14 +124,80 @@ bool tryInitializeAssetSystem()
   return true;
 }
 
+AssetDirectory* findDirectory(const wchar_t* path)
+{
+  ensureTrue(path != nullptr, nullptr);
+
+  const wchar_t* subPath = path;
+  AssetDirectory* parentDirectory = &rootDirectory;
+  while (true)
+  {
+    // Ignore trailing slashes
+    uint64 subPathLength = wcslen(subPath);
+    while (subPath[subPathLength - 1] == L'\\' || subPath[subPathLength - 1] == L'/')
+    {
+      subPathLength--;
+    }
+
+    int64 subPathDirectoryNameLength = 0;
+    while (subPath[subPathDirectoryNameLength] != L'\\' && subPath[subPathDirectoryNameLength] != L'/' && subPath[subPathDirectoryNameLength] != L'\0')
+    {
+      subPathDirectoryNameLength++;
+    }
+
+    bool nextDirectoryFound = false;
+    for (AssetDirectory& directory : parentDirectory->directories)
+    {
+      if (directory.name.length() == subPathDirectoryNameLength)
+      {
+        bool areNamesEqual = true;
+        for (int64 i = 0; i < subPathDirectoryNameLength; ++i)
+        {
+          if (directory.name[i] != subPath[i])
+          {
+            areNamesEqual = false;
+            break;
+          }
+        }
+
+        if (areNamesEqual)
+        {
+          if (subPathDirectoryNameLength == subPathLength)
+          {
+            return &directory;
+          }
+
+          subPath = subPath + subPathDirectoryNameLength + 1;
+          parentDirectory = &directory;
+          nextDirectoryFound = true;
+          break;
+        }
+      }
+    }
+
+    if (!nextDirectoryFound)
+    {
+      return nullptr;
+    }
+  }
+
+  return nullptr;
+}
+
 AssetDirectoryRef::~AssetDirectoryRef()
 {
   // TODO: Traverse the subtree, decrease ref count.
 }
 AssetDirectoryRef loadAssetDirectory(const wchar_t* path)
 {
+  ensureTrue(isInMainThread(), AssetDirectoryRef(nullptr));
+  ensureTrue(path != nullptr, AssetDirectoryRef(nullptr));
+
+  AssetDirectory* directory = findDirectory(path);
+  ensureTrue(directory != nullptr, AssetDirectoryRef(nullptr));
+
   // TODO: Traverse the subtree, increase ref count and add each assets loaded task event to an array, 
   // which will be a prerequisite to a task that sets the returned task event ref to completed.
 
-  return AssetDirectoryRef(nullptr);
+  return AssetDirectoryRef(directory);
 }
