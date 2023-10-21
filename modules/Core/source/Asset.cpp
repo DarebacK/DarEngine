@@ -8,14 +8,15 @@
 
 AssetType assetTypeStringToEnum(const char* string)
 {
-  if (isEqual(string, "Texture2D"))
-  {
-    return AssetType::Texture2D;
+#define ASSET_TYPE_STRINGTOENUM(name) \
+  else if(isEqual(string, #name)) \
+  { \
+    return AssetType::name; \
   }
-  else if(isEqual(string, "Config"))
-  {
-    return AssetType::Config;
-  }
+
+  if(false) { }
+  ASSET_TYPE_LIST(ASSET_TYPE_STRINGTOENUM)
+#undef ASSET_TYPE_STRINGTOENUM
 
   return AssetType::Unknown;
 }
@@ -49,7 +50,27 @@ void Asset::ref()
 
 void Asset::unref()
 {
-  refCount--;
+  if (--refCount == 0)
+  {
+    ensureTrue(isInMainThread());
+
+    *pointerInAssetDirectory = nullptr;
+
+    switch (assetType)
+    {
+    #define ASSET_TYPE_DELETE_CASE(name) case AssetType::name: {\
+      name* derivedPtr = reinterpret_cast<name*>(this); \
+      delete derivedPtr; \
+      break; }
+    
+      ASSET_TYPE_LIST(ASSET_TYPE_DELETE_CASE)
+    #undef ASSET_TYPE_DELETE_CASE
+
+      default:
+        ensureNoEntry();
+        break;
+    }
+  }
   // TODO: delete if refCount == 0
 }
 
@@ -63,6 +84,8 @@ struct AssetDirectory
 
   void loadAssets()
   {
+    ensureTrue(isInMainThread());
+
     for (int32 assetIndex = 0; assetIndex < assets.size(); assetIndex++)
     {
       Asset* asset = assets[assetIndex];
@@ -103,7 +126,31 @@ struct AssetDirectory
         continue;
       }
 
-      // TODO: initialize the asset
+      Asset** pointerInAssetDirectory = &assets[assetIndex];
+      Asset* assetBase = nullptr;
+
+      switch (assetType)
+      {
+      #define ASSET_TYPE_CONSTRUCT(name) \
+        case AssetType::name: { \
+          name* asset = new name(); \
+          asset->initialize(assetMetaFileData.data(), assetMetaFileData.size(), assetFileData.data(), assetFileData.size()); \
+          assetBase = asset; \
+            break; }
+
+      ASSET_TYPE_LIST(ASSET_TYPE_CONSTRUCT)
+      #undef ASSET_TYPE_CONSTRUCT
+
+        default:
+          ensureNoEntry();
+          continue;
+      }
+
+      assetBase->ref();
+      *pointerInAssetDirectory = assetBase;
+
+      assetBase->pointerInAssetDirectory = pointerInAssetDirectory;
+      assetBase->assetType = assetType;
     }
 
     for (AssetDirectory& directory : directories)
@@ -267,6 +314,7 @@ AssetDirectory* findDirectory(const wchar_t* path)
 AssetDirectoryRef::AssetDirectoryRef(const wchar_t* path)
   : directory(findDirectory(path))
 {
+  ensureTrue(isInMainThread());
   ensureTrue(directory != nullptr);
 
   directory->loadAssets();
@@ -276,4 +324,14 @@ AssetDirectoryRef::AssetDirectoryRef(const wchar_t* path)
 AssetDirectoryRef::~AssetDirectoryRef()
 {
   // TODO: Traverse the subtree, decrease ref count.
+}
+
+void Config::initialize(byte* metaData, int64 metaDataLength, byte* fileData, int64 fileDataLength)
+{
+  // TODO: implement
+}
+
+void Texture2D::initialize(byte* metaData, int64 metaDataLength, byte* fileData, int64 fileDataLength)
+{
+  // TODO: implement
 }

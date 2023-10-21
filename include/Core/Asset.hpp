@@ -41,30 +41,35 @@ private:
   class AssetDirectory* directory = nullptr;
 };
 
-// TODO: Asset types could be defines in a AssetType.inl with macros, where the macro can once be used here to define enum values and also in ~Asset()
+#define ASSET_TYPE_LIST(macro) \
+  macro(Config) \
+  macro(Texture2D)
+
 enum class AssetType : uint16
 {
   Unknown = 0,
-  Config = 1,
-  Texture2D = 100,
+#define ASSET_TYPE_ENUM(name) name,
+  ASSET_TYPE_LIST(ASSET_TYPE_ENUM)
+#undef ASSET_TYPE_ENUM
 };
 
 class Asset
 {
-
-public:
-
-  AssetType assetType = AssetType::Unknown;
-
-  void ref();
-  void unref();  // Call destructor based on type if refCount reaches 0.
-
 protected:
 
   Asset() = default;
   Asset(const Asset& other) = delete;
   Asset(Asset&& other) = delete;
-  ~Asset();
+
+public:
+
+  // Used to delete itself from the asset directory after ref count reaches zero.
+  // TODO: maybe we don't have to delete the assets? Just call destructor/constructor without deletion.
+  Asset** pointerInAssetDirectory = nullptr;
+  AssetType assetType = AssetType::Unknown;
+
+  void ref();
+  void unref();  // Call destructor based on type if refCount reaches 0.
 
 private:
 
@@ -74,10 +79,8 @@ private:
 class Config : public Asset
 {
 public:
-  
-  Config() { assetType = AssetType::Config; }
 
-  Ref<TaskEvent> initializeAsync(byte* metaData, int64 metaDataLength, byte* fileData, byte* fileDataLength);
+  void initialize(byte* metaData, int64 metaDataLength, byte* fileData, int64 fileDataLength);
 
 };
 
@@ -85,8 +88,6 @@ class Texture2D : public Asset
 {
 public:
 
-  Texture2D() { assetType = AssetType::Texture2D; }
-
-  Ref<TaskEvent> initializeAsync(byte* metaData, int64 metaDataLength, byte* fileData, byte* fileDataLength);
+  void initialize(byte* metaData, int64 metaDataLength, byte* fileData, int64 fileDataLength);
 
 };
