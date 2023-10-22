@@ -71,7 +71,6 @@ void Asset::unref()
         break;
     }
   }
-  // TODO: delete if refCount == 0
 }
 
 struct AssetDirectory
@@ -82,7 +81,7 @@ struct AssetDirectory
   std::vector<std::wstring> assetFileNames;
   std::vector<Asset*> assets; // Indices correspond to assetFileNames indices, is nullptr for not loaded assets.
 
-  void loadAssets()
+  void loadAssetsIncludingSubdirectories()
   {
     ensureTrue(isInMainThread());
 
@@ -155,7 +154,19 @@ struct AssetDirectory
 
     for (AssetDirectory& directory : directories)
     {
-      directory.loadAssets();
+      directory.loadAssetsIncludingSubdirectories();
+    }
+  }
+  void unloadAssetsIncludingSubdirectories()
+  {
+    for (Asset* asset : assets)
+    {
+      asset->unref();
+    }
+
+    for (AssetDirectory& directory : directories)
+    {
+      directory.unloadAssetsIncludingSubdirectories();
     }
   }
 };
@@ -317,13 +328,13 @@ AssetDirectoryRef::AssetDirectoryRef(const wchar_t* path)
   ensureTrue(isInMainThread());
   ensureTrue(directory != nullptr);
 
-  directory->loadAssets();
+  directory->loadAssetsIncludingSubdirectories();
   // TODO: Traverse the subtree, increase ref count and add each assets loaded task event to an array, 
   // which will be a prerequisite to a task that sets the returned task event ref to completed.
 }
 AssetDirectoryRef::~AssetDirectoryRef()
 {
-  // TODO: Traverse the subtree, decrease ref count.
+  directory->unloadAssetsIncludingSubdirectories();
 }
 
 void Config::initialize(byte* metaData, int64 metaDataLength, byte* fileData, int64 fileDataLength)
