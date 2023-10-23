@@ -82,6 +82,15 @@ public:
 
   void initialize(byte* metaData, int64 metaDataLength, byte* fileData, int64 fileDataLength);
 
+  bool getBool(const std::string& key) const;
+  float getFloat(const std::string& key) const;
+  double getDouble(const std::string& key) const;
+  int64 getInt(const std::string& key) const;
+  std::string getString(const std::string& key) const;
+
+private:
+
+  std::unordered_map<std::string, std::string> keysToValues;
 };
 
 class Texture2D : public Asset

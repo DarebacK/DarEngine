@@ -2,6 +2,8 @@
 
 #include "Core/Asset.hpp"
 
+#include <string>
+
 #include "Core/File.hpp"
 #include "Core/String.hpp"
 #include "Core/Config.hpp"
@@ -339,7 +341,89 @@ AssetDirectoryRef::~AssetDirectoryRef()
 
 void Config::initialize(byte* metaData, int64 metaDataLength, byte* fileData, int64 fileDataLength)
 {
-  // TODO: implement
+  tryParseConfig(reinterpret_cast<char*>(fileData), fileDataLength, [this](const ConfigKeyValueNode& node) -> bool {
+    std::string value{node.value, static_cast<uint64>(node.valueLength)};
+    std::transform(value.begin(), value.end(), value.begin(), std::tolower);
+    keysToValues.emplace(std::string(node.key, node.keyLength), std::move(value));
+
+      return false;
+  });
+}
+bool Config::getBool(const std::string& key) const
+{
+  auto it = keysToValues.find(key);
+  if (it == keysToValues.end())
+  {
+    ensureNoEntry();
+    return 0;
+  }
+
+  const std::string& value = it->second;
+  if (value == "true")
+  {
+    return true;
+  }
+  else if(value == "false")
+  {
+    return false;
+  }
+
+  char* endPtr;
+  int64 number = strtoll(value.c_str(), &endPtr, 10);
+  ensureTrue(*endPtr, false);
+
+  if (number != 0)
+  {
+    return true;
+  }
+  else 
+  {
+    return false;
+  }
+}
+float Config::getFloat(const std::string& key) const
+{
+  auto it = keysToValues.find(key);
+  if (it == keysToValues.end())
+  {
+    ensureNoEntry();
+    return 0;
+  }
+
+  return std::stof(it->second);
+}
+double Config::getDouble(const std::string& key) const
+{
+  auto it = keysToValues.find(key);
+  if (it == keysToValues.end())
+  {
+    ensureNoEntry();
+    return 0;
+  }
+
+  return std::stold(it->second);
+}
+int64 Config::getInt(const std::string& key) const
+{
+  auto it = keysToValues.find(key);
+  if (it == keysToValues.end())
+  {
+    ensureNoEntry();
+    return 0;
+  }
+
+  return std::stoll(it->second);
+}
+std::string Config::getString(const std::string& key) const
+{
+  auto it = keysToValues.find(key);
+  if (it == keysToValues.end())
+  {
+    ensureNoEntry();
+    return {};
+  }
+
+  return it->second;
 }
 
 void Texture2D::initialize(byte* metaData, int64 metaDataLength, byte* fileData, int64 fileDataLength)
