@@ -33,6 +33,10 @@ public:
   AssetDirectoryRef& operator=(const AssetDirectoryRef& other);
   AssetDirectoryRef& operator=(AssetDirectoryRef&& other);
 
+  // path is relative path from this directory.
+  template<typename AssetType>
+  AssetType* findAsset(const wchar_t* path) const;
+
   // Completed when all assets in asset directory subtree are loaded and initialized.
   Ref<TaskEvent> loadedEvent;
 
@@ -40,6 +44,12 @@ private:
 
   class AssetDirectory* directory = nullptr;
 };
+class Asset* _internalFindAsset(class AssetDirectory* directory, const wchar_t* path);
+template<typename AssetType>
+AssetType* AssetDirectoryRef::findAsset(const wchar_t* path) const
+{
+  // TODO: implement using _internalFindAsset
+}
 
 #define ASSET_TYPE_LIST(macro) \
   macro(Config) \

@@ -272,34 +272,15 @@ AssetDirectory* findDirectory(const wchar_t* path)
   AssetDirectory* parentDirectory = &rootDirectory;
   while (true)
   {
-    // Ignore trailing slashes
-    uint64 subPathLength = wcslen(subPath);
-    while (subPath[subPathLength - 1] == L'\\' || subPath[subPathLength - 1] == L'/')
-    {
-      subPathLength--;
-    }
-
-    int64 subPathDirectoryNameLength = 0;
-    while (subPath[subPathDirectoryNameLength] != L'\\' && subPath[subPathDirectoryNameLength] != L'/' && subPath[subPathDirectoryNameLength] != L'\0')
-    {
-      subPathDirectoryNameLength++;
-    }
+    uint64 subPathLength = getLengthWithoutTrailingSlashes(subPath);
+    int64 subPathDirectoryNameLength = getLengthUntilFirstSlash(subPath);
 
     bool nextDirectoryFound = false;
     for (AssetDirectory& directory : parentDirectory->directories)
     {
       if (directory.name.length() == subPathDirectoryNameLength)
       {
-        bool areNamesEqual = true;
-        for (int64 i = 0; i < subPathDirectoryNameLength; ++i)
-        {
-          if (directory.name[i] != subPath[i])
-          {
-            areNamesEqual = false;
-            break;
-          }
-        }
-
+        const bool areNamesEqual = contains(directory.name.c_str(), subPath, subPathDirectoryNameLength);
         if (areNamesEqual)
         {
           if (subPathDirectoryNameLength == subPathLength)
@@ -337,6 +318,16 @@ AssetDirectoryRef::AssetDirectoryRef(const wchar_t* path)
 AssetDirectoryRef::~AssetDirectoryRef()
 {
   directory->unloadAssetsIncludingSubdirectories();
+}
+
+Asset* _internalFindAsset(class AssetDirectory* directory, const wchar_t* path)
+{
+  ensureTrue(directory != nullptr, nullptr);
+  ensureTrue(path != nullptr, nullptr);
+
+  // TODO: implement
+
+  return nullptr;
 }
 
 void Config::initialize(byte* metaData, int64 metaDataLength, byte* fileData, int64 fileDataLength)
