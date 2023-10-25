@@ -3,6 +3,7 @@
 #include "Core/Memory.hpp"
 #include "Core/Config.hpp"
 #include "Core/Math.hpp"
+#include "Core/String.hpp"
 
 // Memory tests ************************************************************************************
 
@@ -133,4 +134,46 @@ TEST(Math, Mat4fMultiplicationMat4x3f)
     EXPECT_EQ(c[3][1], 1320.f);
     EXPECT_EQ(c[3][2], 1378.f);
     EXPECT_EQ(c[3][3], 16.f);
+}
+
+// String tests ************************************************************************************
+TEST(String, getLengthWithoutTrailingSlashes)
+{
+  const wchar_t* str1 = L"";
+  EXPECT_EQ(getLengthWithoutTrailingSlashes(str1), 0);
+
+  const wchar_t* str2 = L"\\";
+  EXPECT_EQ(getLengthWithoutTrailingSlashes(str2), 0);
+
+  const wchar_t* str3 = L"ab\\cd";
+  EXPECT_EQ(getLengthWithoutTrailingSlashes(str3), 5);
+
+  const wchar_t* str4 = L"ab\\cde\\";
+  EXPECT_EQ(getLengthWithoutTrailingSlashes(str4), 6);
+
+  const wchar_t* str5 = L"abc\\de/";
+  EXPECT_EQ(getLengthWithoutTrailingSlashes(str5), 6);
+
+  const wchar_t* str6 = L"abcde/fgh/";
+  EXPECT_EQ(getLengthWithoutTrailingSlashes(str6), 9);
+}
+TEST(String, getLengthUntilFirstSlash)
+{
+  const wchar_t* str1 = L"";
+  EXPECT_EQ(getLengthUntilFirstSlash(str1), 0);
+
+  const wchar_t* str2 = L"\\";
+  EXPECT_EQ(getLengthUntilFirstSlash(str2), 0);
+
+  const wchar_t* str3 = L"ab\\cd";
+  EXPECT_EQ(getLengthUntilFirstSlash(str3), 2);
+
+  const wchar_t* str4 = L"ab\\cde\\";
+  EXPECT_EQ(getLengthUntilFirstSlash(str4), 2);
+
+  const wchar_t* str5 = L"abc\\de/";
+  EXPECT_EQ(getLengthUntilFirstSlash(str5), 3);
+
+  const wchar_t* str6 = L"abcde/fgh/";
+  EXPECT_EQ(getLengthUntilFirstSlash(str6), 5);
 }
