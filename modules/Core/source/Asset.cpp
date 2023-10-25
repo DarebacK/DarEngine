@@ -8,6 +8,17 @@
 #include "Core/String.hpp"
 #include "Core/Config.hpp"
 
+#define FIND_ASSET_IMPLEMENTATION(name) \
+  template<> \
+  name* AssetDirectoryRef::findAsset<name>(const wchar_t* path) const \
+  { \
+    Asset* asset = internalFindAsset(directory, path); \
+    if(!ensure(asset != nullptr)) return nullptr; \
+    if(!ensure(asset->assetType == AssetType::name)) return nullptr; \
+    return reinterpret_cast<name*>(asset); \
+  }
+ASSET_TYPE_LIST(FIND_ASSET_IMPLEMENTATION)
+
 AssetType assetTypeStringToEnum(const char* string)
 {
 #define ASSET_TYPE_STRINGTOENUM(name) \
@@ -320,13 +331,42 @@ AssetDirectoryRef::~AssetDirectoryRef()
   directory->unloadAssetsIncludingSubdirectories();
 }
 
-Asset* _internalFindAsset(class AssetDirectory* directory, const wchar_t* path)
+Asset* internalFindAsset(AssetDirectory* directory, const wchar_t* path)
 {
   ensureTrue(directory != nullptr, nullptr);
   ensureTrue(path != nullptr, nullptr);
 
-  // TODO: implement
+  AssetDirectory* lastDirectory = directory;
+  const wchar_t* subPath = path;
+  int64 lengthUntilFirstSlash = getLengthUntilFirstSlash(subPath);
+  while (lengthUntilFirstSlash != wcslen(subPath))
+  {
+    for (AssetDirectory& nextDirectory : directory->directories)
+    {
+      if (contains(subPath, nextDirectory.name.c_str(), lengthUntilFirstSlash))
+      {
+        lastDirectory = &nextDirectory;
+        subPath += lengthUntilFirstSlash + 1;
+        lengthUntilFirstSlash = getLengthUntilFirstSlash(subPath);
+        continue;
+      }
+    }
 
+    ensureNoEntry();
+    return nullptr;
+  }
+
+  const wchar_t* fileName = subPath;
+  for (int64 assetIndex = 0; assetIndex < lastDirectory->assetFileNames.size(); ++assetIndex)
+  {
+    const wchar_t* assetFileName = lastDirectory->assetFileNames[assetIndex].c_str();
+    if (isEqual(fileName, assetFileName))
+    {
+      return lastDirectory->assets[assetIndex];
+    }
+  }
+
+  ensureNoEntry();
   return nullptr;
 }
 

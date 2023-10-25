@@ -11,3 +11,4 @@ bool contains(const wchar_t* string1, const wchar_t* string2, int64 lengthToComp
 
 int64 getLengthWithoutTrailingSlashes(const wchar_t* string);
 int64 getLengthUntilFirstSlash(const wchar_t* string);
+int64 getLengthUntilLastSlash(const wchar_t* string);

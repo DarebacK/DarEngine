@@ -176,4 +176,7 @@ TEST(String, getLengthUntilFirstSlash)
 
   const wchar_t* str6 = L"abcde/fgh/";
   EXPECT_EQ(getLengthUntilFirstSlash(str6), 5);
+
+  const wchar_t* str7 = L"abc";
+  EXPECT_EQ(getLengthUntilFirstSlash(str7), 3);
 }

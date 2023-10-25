@@ -45,7 +45,6 @@ int64 getLengthWithoutTrailingSlashes(const wchar_t* string)
 
   return length;
 }
-
 int64 getLengthUntilFirstSlash(const wchar_t* string)
 {
   ensureTrue(string != nullptr, 0);
@@ -55,6 +54,19 @@ int64 getLengthUntilFirstSlash(const wchar_t* string)
   {
     length++;
   }
+
+  return length;
+}
+int64 getLengthUntilLastSlash(const wchar_t* string)
+{
+  ensureTrue(string != nullptr, 0);
+
+  uint64 length = wcslen(string);
+  while (string[length - 1] != L'\\' && string[length - 1] != L'/')
+  {
+    length--;
+  }
+  length--;
 
   return length;
 }

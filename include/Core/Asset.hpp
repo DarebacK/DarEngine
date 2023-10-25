@@ -21,6 +21,7 @@
 
 bool tryInitializeAssetSystem();
 
+class AssetDirectory;
 class AssetDirectoryRef
 {
 public:
@@ -42,14 +43,8 @@ public:
 
 private:
 
-  class AssetDirectory* directory = nullptr;
+  AssetDirectory* directory = nullptr;
 };
-class Asset* _internalFindAsset(class AssetDirectory* directory, const wchar_t* path);
-template<typename AssetType>
-AssetType* AssetDirectoryRef::findAsset(const wchar_t* path) const
-{
-  // TODO: implement using _internalFindAsset
-}
 
 #define ASSET_TYPE_LIST(macro) \
   macro(Config) \
@@ -85,6 +80,7 @@ private:
 
   std::atomic<int32> refCount = 0;
 };
+Asset* internalFindAsset(AssetDirectory* directory, const wchar_t* path);
 
 class Config : public Asset
 {
@@ -110,3 +106,7 @@ public:
   void initialize(byte* metaData, int64 metaDataLength, byte* fileData, int64 fileDataLength);
 
 };
+
+#define FIND_ASSET_INSTANTIATION(name) \
+  template<> name* AssetDirectoryRef::findAsset<name>(const wchar_t* path) const;
+ASSET_TYPE_LIST(FIND_ASSET_INSTANTIATION)
