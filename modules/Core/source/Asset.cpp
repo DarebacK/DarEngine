@@ -12,12 +12,25 @@
   template<> \
   name* AssetDirectoryRef::findAsset<name>(const wchar_t* path) const \
   { \
+    TRACE_SCOPE() \
     Asset* asset = internalFindAsset(directory, path); \
     if(!ensure(asset != nullptr)) return nullptr; \
     if(!ensure(asset->assetType == AssetType::name)) return nullptr; \
     return reinterpret_cast<name*>(asset); \
   }
 ASSET_TYPE_LIST(FIND_ASSET_IMPLEMENTATION)
+
+const char* toString(AssetType type)
+{
+#define ASSET_TYPE_ENUMTOSTRING(name) case AssetType::name: return #name;
+  switch (type)
+  {
+    ASSET_TYPE_LIST(ASSET_TYPE_ENUMTOSTRING)
+  default:
+    ensureNoEntry();
+    return "Unknown";
+  }
+}
 
 AssetType assetTypeStringToEnum(const char* string)
 {
@@ -96,6 +109,8 @@ struct AssetDirectory
 
   void loadAssetsIncludingSubdirectories()
   {
+    TRACE_SCOPE();
+
     ensureTrue(isInMainThread());
 
     for (int32 assetIndex = 0; assetIndex < assets.size(); assetIndex++)
@@ -262,6 +277,8 @@ static bool tryTraverseDirectory(wchar_t* wildcardPathBuffer, int64 wildcardPath
 
 bool tryInitializeAssetSystem()
 {
+  TRACE_SCOPE();
+
   WIN32_FIND_DATA findData;
   wchar_t wildcardPath[MAX_PATH];
   swprintf(wildcardPath, arrayLength(wildcardPath), L"assets\\*");
@@ -277,6 +294,8 @@ bool tryInitializeAssetSystem()
 
 AssetDirectory* findDirectory(const wchar_t* path)
 {
+  TRACE_SCOPE();
+
   ensureTrue(path != nullptr, nullptr);
 
   const wchar_t* subPath = path;

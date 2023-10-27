@@ -57,6 +57,7 @@ enum class AssetType : uint16
   ASSET_TYPE_LIST(ASSET_TYPE_ENUM)
 #undef ASSET_TYPE_ENUM
 };
+const char* toString(AssetType type);
 
 class Asset
 {
