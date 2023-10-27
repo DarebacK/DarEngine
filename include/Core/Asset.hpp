@@ -88,11 +88,11 @@ public:
 
   void initialize(byte* metaData, int64 metaDataLength, byte* fileData, int64 fileDataLength);
 
-  bool getBool(const std::string& key) const;
-  float getFloat(const std::string& key) const;
-  double getDouble(const std::string& key) const;
-  int64 getInt(const std::string& key) const;
-  std::string getString(const std::string& key) const;
+  bool getBool(const char* key) const;
+  float getFloat(const char* key) const;
+  double getDouble(const char* key) const;
+  int64 getInt(const char* key) const;
+  const std::string& getString(const char* key) const;
 
 private:
 

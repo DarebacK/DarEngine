@@ -380,7 +380,7 @@ void Config::initialize(byte* metaData, int64 metaDataLength, byte* fileData, in
       return false;
   });
 }
-bool Config::getBool(const std::string& key) const
+bool Config::getBool(const char* key) const
 {
   auto it = keysToValues.find(key);
   if (it == keysToValues.end())
@@ -412,7 +412,7 @@ bool Config::getBool(const std::string& key) const
     return false;
   }
 }
-float Config::getFloat(const std::string& key) const
+float Config::getFloat(const char* key) const
 {
   auto it = keysToValues.find(key);
   if (it == keysToValues.end())
@@ -423,7 +423,7 @@ float Config::getFloat(const std::string& key) const
 
   return std::stof(it->second);
 }
-double Config::getDouble(const std::string& key) const
+double Config::getDouble(const char* key) const
 {
   auto it = keysToValues.find(key);
   if (it == keysToValues.end())
@@ -434,7 +434,7 @@ double Config::getDouble(const std::string& key) const
 
   return std::stold(it->second);
 }
-int64 Config::getInt(const std::string& key) const
+int64 Config::getInt(const char* key) const
 {
   auto it = keysToValues.find(key);
   if (it == keysToValues.end())
@@ -445,7 +445,7 @@ int64 Config::getInt(const std::string& key) const
 
   return std::stoll(it->second);
 }
-std::string Config::getString(const std::string& key) const
+const std::string& Config::getString(const char* key) const
 {
   auto it = keysToValues.find(key);
   if (it == keysToValues.end())
