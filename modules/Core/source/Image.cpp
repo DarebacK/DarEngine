@@ -3,6 +3,7 @@
 #include "Core/Core.hpp"
 #include "Core/Math.hpp"
 #include "Core/File.hpp"
+#include "Core/String.hpp"
 
 #include <external/lodepng.h>
 #include <external/turbojpeg.h>
@@ -12,6 +13,27 @@
 
 // General -----------------------------------------------------------------------------------------
 
+const char* toString(PixelFormat pixelFormat)
+{
+  // TODO: implement for all cases, maybe using a list macro?
+  switch(pixelFormat)
+  {
+    case PixelFormat::int16: return "int16";
+    default: ensureNoEntry(); return "";
+  }
+}
+PixelFormat toPixelFormat(const char* string)
+{
+  // TODO: implement for all cases, maybe using a list macro?
+  if(isEqual(string, "int16"))
+  {
+    return PixelFormat::int16;
+  }
+  else
+  {
+    ensureNoEntry(); return PixelFormat::Invalid;
+  }
+}
 int8 toChannelCount(PixelFormat pixelFormat)
 {
   switch (pixelFormat)
@@ -56,8 +78,14 @@ int16 toPixelSizeInBits(PixelFormat pixelFormat)
     case PixelFormat::Grayscale:
       return 8;
 
+    case PixelFormat::int16: return 16;
+
     default: return 0;
   }
+}
+int16 toPixelSizeInBytes(PixelFormat pixelFormat)
+{
+  return toPixelSizeInBits(pixelFormat) / 8;
 }
 
 Image::Image(Image&& other) noexcept

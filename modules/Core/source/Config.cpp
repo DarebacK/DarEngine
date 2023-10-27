@@ -50,7 +50,8 @@ static ConfigKeyValueNode toConfigKeyValueNode(IniDispatch* dispatch)
 
 static bool libconfiniParse(char* data, int64 dataLength, IniDispHandler callback, void* userData)
 {
-  switch (strip_ini_cache(data, size_t(dataLength), INI_DEFAULT_FORMAT, nullptr, callback, userData))
+  const int status = strip_ini_cache(data, size_t(dataLength), INI_DEFAULT_FORMAT, nullptr, callback, userData);
+  switch (status)
   {
     case CONFINI_SUCCESS:
     case CONFINI_IINTR:

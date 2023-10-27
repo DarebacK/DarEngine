@@ -7,6 +7,8 @@
 #include "Core/Core.hpp"
 #include "Core/Memory.hpp"
 #include "Core/Task.hpp"
+#include "Core/Image.hpp"
+#include "Core/D3D11.hpp"
 
 // TODO: create an AssetRegistry, that knows about all assets in the asset folder.
 // The registry will be filled during game start. 
@@ -49,7 +51,6 @@ private:
 #define ASSET_TYPE_LIST(macro) \
   macro(Config) \
   macro(Texture2D)
-
 enum class AssetType : uint16
 {
   Unknown = 0,
@@ -106,6 +107,23 @@ public:
 
   void initialize(byte* metaData, int64 metaDataLength, byte* fileData, int64 fileDataLength);
 
+private:
+
+  CComPtr<ID3D11ShaderResourceView> view;
+  CComPtr<ID3D11Texture2D> texture;
+
+  int32 width = 0;
+  int32 height = 0;
+  int8 mipLevelCount = 1;
+  PixelFormat pixelFormat = PixelFormat::Invalid;
+  enum class CpuAccess : uint8
+  {
+    None = 0,
+    Read,
+    Write,
+    ReadWrite
+  };
+  CpuAccess cpuAccess = CpuAccess::None;
 };
 
 #define FIND_ASSET_INSTANTIATION(name) \

@@ -16,10 +16,14 @@ enum class PixelFormat : uint8
   RGB,
   BGR,
   Grayscale,
-  BC1
+  BC1,
+  int16
 };
+const char* toString(PixelFormat pixelFormat);
+PixelFormat toPixelFormat(const char* string);
 int8 toChannelCount(PixelFormat pixelFormat);
-int16 toPixelSizeInBits(PixelFormat);
+int16 toPixelSizeInBits(PixelFormat pixelFormat);
+int16 toPixelSizeInBytes(PixelFormat pixelFormat);
 int64 calculatePitch(PixelFormat pixelFormat, int64 width);
 
 struct RgbPixel

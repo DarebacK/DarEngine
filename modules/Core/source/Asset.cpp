@@ -133,6 +133,8 @@ struct AssetDirectory
       memcpy(fileExtension, L"meta\0", sizeof(wchar_t) * 5);
       std::vector<byte> assetMetaFileData;
       ensure(tryReadEntireFile(assetPath, assetMetaFileData));
+      // Used for second parse as the parse changes the data.
+      std::vector<byte> assetMetaFileDataCopy = assetMetaFileData;
 
       AssetType assetType = AssetType::Unknown;
       char* assetMetaData = reinterpret_cast<char*>(assetMetaFileData.data());
@@ -161,7 +163,7 @@ struct AssetDirectory
       #define ASSET_TYPE_CONSTRUCT(name) \
         case AssetType::name: { \
           name* asset = new name(); \
-          asset->initialize(assetMetaFileData.data(), assetMetaFileData.size(), assetFileData.data(), assetFileData.size()); \
+          asset->initialize(assetMetaFileDataCopy.data(), assetMetaFileDataCopy.size(), assetFileData.data(), assetFileData.size()); \
           assetBase = asset; \
             break; }
 
@@ -396,7 +398,7 @@ void Config::initialize(byte* metaData, int64 metaDataLength, byte* fileData, in
     std::transform(value.begin(), value.end(), value.begin(), std::tolower);
     keysToValues.emplace(std::string(node.key, node.keyLength), std::move(value));
 
-      return false;
+    return false;
   });
 }
 bool Config::getBool(const char* key) const
@@ -476,7 +478,91 @@ const std::string& Config::getString(const char* key) const
   return it->second;
 }
 
+DXGI_FORMAT toDxgiFormat(PixelFormat pixelFormat)
+{
+  switch(pixelFormat)
+  {
+    case PixelFormat::int16: return DXGI_FORMAT_R16_SINT;
+    default: ensureNoEntry(); return DXGI_FORMAT_UNKNOWN;
+  }
+}
+
 void Texture2D::initialize(byte* metaData, int64 metaDataLength, byte* fileData, int64 fileDataLength)
 {
-  // TODO: implement
+  tryParseConfig(reinterpret_cast<char*>(metaData), metaDataLength, [this](const ConfigKeyValueNode& node) -> bool {
+      if(node.isKey("CpuAccess"))
+      {
+        if(isEqual(node.value, "Read"))
+        {
+          cpuAccess = CpuAccess::Read;
+        }
+        else if(isEqual(node.value, "Write"))
+        {
+          cpuAccess = CpuAccess::Write;
+        }
+        else if(isEqual(node.value, "ReadWrite"))
+        {
+          cpuAccess = CpuAccess::ReadWrite;
+        }
+      }
+      else if(node.isKey("Width"))
+      {
+        width = node.toInt();
+      }
+      else if(node.isKey("Height"))
+      {
+        height = node.toInt();
+      }
+      else if(node.isKey("PixelFormat"))
+      {
+        pixelFormat = toPixelFormat(node.value);
+      }
+
+      return false;
+    });
+
+  ensureTrue(width > 0 && height > 0);
+
+  // TODO: Handle cpu access.
+  const D3D11_TEXTURE2D_DESC description = {
+    UINT(width),
+    UINT(height),
+    mipLevelCount,
+    1,
+    toDxgiFormat(pixelFormat),
+    {1, 0},
+    D3D11_USAGE_IMMUTABLE,
+    D3D11_BIND_SHADER_RESOURCE,
+    0,
+    0
+  };
+
+  // TODO: imageData doesn't necessarily have to be equal to fileData.
+  const byte* imageData = fileData;
+
+  D3D11_SUBRESOURCE_DATA subresourceData;
+  subresourceData.pSysMem = imageData;
+  subresourceData.SysMemPitch = width * toPixelSizeInBytes(pixelFormat);
+  subresourceData.SysMemSlicePitch = 0;
+
+  if(FAILED(D3D11::device->CreateTexture2D(&description, &subresourceData, &texture)))
+  {
+    ensureNoEntry();
+    logError("Failed to create heightmap texture.");
+    return;
+  }
+
+  D3D11_SHADER_RESOURCE_VIEW_DESC viewDescription;
+  viewDescription.Format = description.Format;
+  viewDescription.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+  viewDescription.Texture2D.MostDetailedMip = 0;
+  viewDescription.Texture2D.MipLevels = 1;
+
+  if(FAILED(D3D11::device->CreateShaderResourceView(texture, &viewDescription, &view)))
+  {
+    ensureNoEntry();
+    logError("Failed to create heightmap shader resource view.");
+    texture.Release();
+    return;
+  }
 }
