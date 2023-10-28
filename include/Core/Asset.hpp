@@ -107,8 +107,6 @@ public:
 
   void initialize(byte* metaData, int64 metaDataLength, byte* fileData, int64 fileDataLength, const wchar_t* fileNameExtension);
 
-private:
-
   CComPtr<ID3D11ShaderResourceView> view;
   CComPtr<ID3D11Texture2D> texture;
 

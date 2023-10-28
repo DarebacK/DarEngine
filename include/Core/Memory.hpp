@@ -88,7 +88,7 @@ class Ref
 public:
 
   Ref() = default;
-  explicit Ref(ValueType* InPtr)
+  Ref(ValueType* InPtr)
     : ptr(InPtr)
   {
     if (ptr)
@@ -128,6 +128,16 @@ public:
     swap(*this, rhs);
     return *this;
   }
+  Ref& operator=(ValueType* inPtr) noexcept
+  {
+    if(ptr)
+    {
+      ptr->unref();
+    }
+    ptr = inPtr;
+    inPtr->ref();
+    return *this;
+  }
   ~Ref()
   {
     if (ptr)
@@ -145,7 +155,8 @@ public:
 
   bool isValid() const { return ptr != nullptr; }
 
-  ValueType* operator->() { assert(ptr != nullptr); return ptr; }
+  ValueType* operator->() { return ptr; }
+  const ValueType* operator->() const { return ptr; }
 
 private:
 

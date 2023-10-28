@@ -588,7 +588,7 @@ void Texture2D::initialize(byte* metaData, int64 metaDataLength, byte* fileData,
     viewDescription.Format = description.Format;
     viewDescription.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
     viewDescription.Texture2D.MostDetailedMip = 0;
-    viewDescription.Texture2D.MipLevels = 1;
+    viewDescription.Texture2D.MipLevels = mipLevelCount;
 
     if(FAILED(D3D11::device->CreateShaderResourceView(texture, &viewDescription, &view)))
     {
