@@ -40,9 +40,6 @@ public:
   template<typename AssetType>
   AssetType* findAsset(const wchar_t* path) const;
 
-  // Completed when all assets in asset directory subtree are loaded and initialized.
-  Ref<TaskEvent> loadedEvent;
-
 private:
 
   AssetDirectory* directory = nullptr;
