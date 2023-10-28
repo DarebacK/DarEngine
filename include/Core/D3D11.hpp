@@ -4,6 +4,7 @@
 #include <atlbase.h>
 
 #include "Core/Core.hpp"
+#include "Core/Image.hpp"
 
 namespace D3D11
 {
@@ -12,3 +13,5 @@ namespace D3D11
 }
 
 HRESULT createTextureFromDDS(const uint8* ddsData, uint64 ddsDataSize, ID3D11Resource** texture, ID3D11ShaderResourceView** textureView);
+
+PixelFormat toPixelFormat(DXGI_FORMAT format);

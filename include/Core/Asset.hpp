@@ -88,7 +88,7 @@ class Config : public Asset
 {
 public:
 
-  void initialize(byte* metaData, int64 metaDataLength, byte* fileData, int64 fileDataLength);
+  void initialize(byte* metaData, int64 metaDataLength, byte* fileData, int64 fileDataLength, const wchar_t* fileNameExtension);
 
   bool getBool(const char* key) const;
   float getFloat(const char* key) const;
@@ -105,7 +105,7 @@ class Texture2D : public Asset
 {
 public:
 
-  void initialize(byte* metaData, int64 metaDataLength, byte* fileData, int64 fileDataLength);
+  void initialize(byte* metaData, int64 metaDataLength, byte* fileData, int64 fileDataLength, const wchar_t* fileNameExtension);
 
 private:
 

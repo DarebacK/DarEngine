@@ -47,7 +47,7 @@ AssetType assetTypeStringToEnum(const char* string)
   return AssetType::Unknown;
 }
 
-static wchar_t* getFileExtension(wchar_t* fileName)
+static const wchar_t* getFileExtension(const wchar_t* fileName)
 {
   int32 characterIndex = 0;
   int32 lastDotIndex = -1;
@@ -67,6 +67,10 @@ static wchar_t* getFileExtension(wchar_t* fileName)
   }
 
   return fileName + lastDotIndex + 1;
+}
+static wchar_t* getFileExtension(wchar_t* fileName)
+{
+  return const_cast<wchar_t*>(getFileExtension(const_cast<const wchar_t*>(fileName)));
 }
 
 void Asset::ref()
@@ -125,7 +129,8 @@ struct AssetDirectory
       // TODO: asynchronize the loading and initialization
 
       wchar_t assetPath[MAX_PATH];
-      swprintf(assetPath, arrayLength(assetPath), L"%s\\%s", path.c_str(), assetFileNames[assetIndex].c_str());
+      const wchar_t* assetFileName = assetFileNames[assetIndex].c_str();
+      swprintf(assetPath, arrayLength(assetPath), L"%s\\%s", path.c_str(), assetFileName);
       std::vector<byte> assetFileData;
       ensure(tryReadEntireFile(assetPath, assetFileData));
 
@@ -158,12 +163,16 @@ struct AssetDirectory
       Asset** pointerInAssetDirectory = &assets[assetIndex];
       Asset* assetBase = nullptr;
 
+      const wchar_t* assetFileExtension = getFileExtension(assetFileName);
+
+      // TODO: get rid of manually parsing metadata in initialize. Rather use macros with offsetof to automatically populate a struct with metadata passed to the initialize function.
+
       switch (assetType)
       {
       #define ASSET_TYPE_CONSTRUCT(name) \
         case AssetType::name: { \
           name* asset = new name(); \
-          asset->initialize(assetMetaFileDataCopy.data(), assetMetaFileDataCopy.size(), assetFileData.data(), assetFileData.size()); \
+          asset->initialize(assetMetaFileDataCopy.data(), assetMetaFileDataCopy.size(), assetFileData.data(), assetFileData.size(), assetFileExtension); \
           assetBase = asset; \
             break; }
 
@@ -391,7 +400,7 @@ Asset* internalFindAsset(AssetDirectory* directory, const wchar_t* path)
   return nullptr;
 }
 
-void Config::initialize(byte* metaData, int64 metaDataLength, byte* fileData, int64 fileDataLength)
+void Config::initialize(byte* metaData, int64 metaDataLength, byte* fileData, int64 fileDataLength, const wchar_t* fileNameExtension)
 {
   tryParseConfig(reinterpret_cast<char*>(fileData), fileDataLength, [this](const ConfigKeyValueNode& node) -> bool {
     std::string value{node.value, static_cast<uint64>(node.valueLength)};
@@ -487,82 +496,106 @@ DXGI_FORMAT toDxgiFormat(PixelFormat pixelFormat)
   }
 }
 
-void Texture2D::initialize(byte* metaData, int64 metaDataLength, byte* fileData, int64 fileDataLength)
+void Texture2D::initialize(byte* metaData, int64 metaDataLength, byte* fileData, int64 fileDataLength, const wchar_t* fileNameExtension)
 {
   tryParseConfig(reinterpret_cast<char*>(metaData), metaDataLength, [this](const ConfigKeyValueNode& node) -> bool {
-      if(node.isKey("CpuAccess"))
+    if(node.isKey("CpuAccess"))
+    {
+      if(isEqual(node.value, "Read"))
       {
-        if(isEqual(node.value, "Read"))
-        {
-          cpuAccess = CpuAccess::Read;
-        }
-        else if(isEqual(node.value, "Write"))
-        {
-          cpuAccess = CpuAccess::Write;
-        }
-        else if(isEqual(node.value, "ReadWrite"))
-        {
-          cpuAccess = CpuAccess::ReadWrite;
-        }
+        cpuAccess = CpuAccess::Read;
       }
-      else if(node.isKey("Width"))
+      else if(isEqual(node.value, "Write"))
       {
-        width = node.toInt();
+        cpuAccess = CpuAccess::Write;
       }
-      else if(node.isKey("Height"))
+      else if(isEqual(node.value, "ReadWrite"))
       {
-        height = node.toInt();
+        cpuAccess = CpuAccess::ReadWrite;
       }
-      else if(node.isKey("PixelFormat"))
-      {
-        pixelFormat = toPixelFormat(node.value);
-      }
+    }
+    else if(node.isKey("Width"))
+    {
+      width = node.toInt();
+    }
+    else if(node.isKey("Height"))
+    {
+      height = node.toInt();
+    }
+    else if(node.isKey("PixelFormat"))
+    {
+      pixelFormat = toPixelFormat(node.value);
+    }
+    else if(node.isKey("MipLevelCount"))
+    {
+      mipLevelCount = node.toInt();
+    }
 
-      return false;
-    });
+    return false;
+  });
 
-  ensureTrue(width > 0 && height > 0);
-
-  // TODO: Handle cpu access.
-  const D3D11_TEXTURE2D_DESC description = {
-    UINT(width),
-    UINT(height),
-    mipLevelCount,
-    1,
-    toDxgiFormat(pixelFormat),
-    {1, 0},
-    D3D11_USAGE_IMMUTABLE,
-    D3D11_BIND_SHADER_RESOURCE,
-    0,
-    0
-  };
-
-  // TODO: imageData doesn't necessarily have to be equal to fileData.
-  const byte* imageData = fileData;
-
-  D3D11_SUBRESOURCE_DATA subresourceData;
-  subresourceData.pSysMem = imageData;
-  subresourceData.SysMemPitch = width * toPixelSizeInBytes(pixelFormat);
-  subresourceData.SysMemSlicePitch = 0;
-
-  if(FAILED(D3D11::device->CreateTexture2D(&description, &subresourceData, &texture)))
+  if(isEqual(fileNameExtension, L"dds"))
   {
-    ensureNoEntry();
-    logError("Failed to create heightmap texture.");
-    return;
+    if(!ensure(SUCCEEDED(createTextureFromDDS(fileData, fileDataLength, (ID3D11Resource**)&texture, &view))))
+    {
+      logError("Failed to initialize Texture2D from a dds file.");
+      return;
+    }
+
+    D3D11_TEXTURE2D_DESC description;
+    texture->GetDesc(&description);
+
+    width = description.Width;
+    height = description.Height;
+    mipLevelCount = description.MipLevels;
+    pixelFormat = toPixelFormat(description.Format);
+
+    // TODO: Handle cpu access;
   }
-
-  D3D11_SHADER_RESOURCE_VIEW_DESC viewDescription;
-  viewDescription.Format = description.Format;
-  viewDescription.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-  viewDescription.Texture2D.MostDetailedMip = 0;
-  viewDescription.Texture2D.MipLevels = 1;
-
-  if(FAILED(D3D11::device->CreateShaderResourceView(texture, &viewDescription, &view)))
+  else
   {
-    ensureNoEntry();
-    logError("Failed to create heightmap shader resource view.");
-    texture.Release();
-    return;
+    ensureTrue(width > 0 && height > 0);
+    ensureTrue(mipLevelCount > 0);
+    ensureTrue(pixelFormat != PixelFormat::Invalid);
+
+    // TODO: Handle cpu access.
+    const D3D11_TEXTURE2D_DESC description = {
+      UINT(width),
+      UINT(height),
+      mipLevelCount,
+      1,
+      toDxgiFormat(pixelFormat),
+      {1, 0},
+      D3D11_USAGE_IMMUTABLE,
+      D3D11_BIND_SHADER_RESOURCE,
+      0,
+      0
+    };
+
+    D3D11_SUBRESOURCE_DATA subresourceData;
+    subresourceData.pSysMem = fileData;
+    subresourceData.SysMemPitch = width * toPixelSizeInBytes(pixelFormat);
+    subresourceData.SysMemSlicePitch = 0;
+
+    if(FAILED(D3D11::device->CreateTexture2D(&description, &subresourceData, &texture)))
+    {
+      ensureNoEntry();
+      logError("Failed to create heightmap texture.");
+      return;
+    }
+
+    D3D11_SHADER_RESOURCE_VIEW_DESC viewDescription;
+    viewDescription.Format = description.Format;
+    viewDescription.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+    viewDescription.Texture2D.MostDetailedMip = 0;
+    viewDescription.Texture2D.MipLevels = 1;
+
+    if(FAILED(D3D11::device->CreateShaderResourceView(texture, &viewDescription, &view)))
+    {
+      ensureNoEntry();
+      logError("Failed to create heightmap shader resource view.");
+      texture.Release();
+      return;
+    }
   }
 }
