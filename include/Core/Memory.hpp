@@ -38,6 +38,7 @@ public:
       lastFreeListHead = freeListHead.load(std::memory_order_relaxed);
       if (!lastFreeListHead)
       {
+        ensureNoEntry();
         logWarning("FixedThreadSafePoolAllocator ran out of preallocated pool objects.");
         if (alignof(ObjectType) > alignof(std::max_align_t))
         {

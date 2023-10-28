@@ -47,7 +47,7 @@ unsigned long fileThreadMain(void* parameter)
       switch (waitResult)
       {
         case WAIT_FAILED:
-          logError("Failed to wait on parallelForFinishedEvent.");
+          logError("Failed to wait on newFileRequestEvent.");
           continue;
 
         default:
