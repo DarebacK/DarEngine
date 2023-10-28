@@ -4,7 +4,7 @@
 
 #include <intrin.h>
 
-FixedThreadSafePoolAllocator<TaskEvent::SubsequentList::Node, 1024> TaskEvent::SubsequentList::nodeAllocator;
+FixedThreadSafePoolAllocator<TaskEvent::SubsequentList::Node, 2048> TaskEvent::SubsequentList::nodeAllocator;
 bool TaskEvent::SubsequentList::tryAdd(Ref<TaskEvent>&& taskEvent)
 {
   if (isComplete)
@@ -53,7 +53,7 @@ void TaskEvent::SubsequentList::recycle(Node* node)
   nodeAllocator.deallocate(node);
 }
 
-static FixedThreadSafePoolAllocator<TaskEvent, 512> taskEventAllocator;
+static FixedThreadSafePoolAllocator<TaskEvent, 1024> taskEventAllocator;
 Ref<TaskEvent> TaskEvent::create() 
 { 
   return Ref<TaskEvent>(new (taskEventAllocator.allocate()) TaskEvent()); 
@@ -214,11 +214,10 @@ Ref<TaskEvent> TaskManager::schedule(TaskFunction function, void* data, ThreadTy
 {
   if (!prerequisites)
   {
-    // TODO: add non fatal type of asserts for these cases.
-    assert(prerequisiteCount == 0);
+    ensureTrue(prerequisiteCount == 0, {});
     return schedule(function, data, desiredThread);
   }
-  assert(prerequisiteCount > 0);
+  ensureTrue(prerequisiteCount > 0, {});
 
   Ref<TaskEvent> completionEvent = TaskEvent::create(function, data, desiredThread);
   completionEvent->setPrerequisites(prerequisiteCount);

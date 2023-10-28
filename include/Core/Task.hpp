@@ -26,12 +26,15 @@ class alignas(CACHE_LINE_SIZE) TaskEvent
 
 public:
 
+  // For events that are used just as a prerequisite.
   static Ref<TaskEvent> create();
-  static Ref<TaskEvent> create(TaskFunction function, void* data, ThreadType desiredThread);
 
   void complete() { return subsequents.complete(); }
 
 private:
+
+  // Used internally by TaskManager when scheduling a task.
+  static Ref<TaskEvent> create(TaskFunction function, void* data, ThreadType desiredThread);
 
   TaskEvent(TaskFunction function, void* data, ThreadType desiredThread);
   TaskEvent() = default;
@@ -68,7 +71,7 @@ private:
       Ref<TaskEvent> taskEvent;
       Node* next = nullptr;
     };
-    static FixedThreadSafePoolAllocator<Node, 1024> nodeAllocator;
+    static FixedThreadSafePoolAllocator<Node, 2048> nodeAllocator;
     static void recycle(Node* node);
 
     std::atomic<Node*> head = nullptr;
