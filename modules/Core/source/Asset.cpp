@@ -158,41 +158,41 @@ struct AssetDirectory
       }
 
       Asset** pointerInAssetDirectory = &assets[assetIndex];
-      Asset* assetBase = nullptr;
 
       const wchar_t* assetFileExtension = getFileExtension(assetFileName);
       memcpy(fileExtension, L"%s\0", wcslen(assetFileExtension) * 5);
       swprintf(assetPath, arrayLength(assetPath), L"%s\\%s", path.c_str(), assetFileName);
-      std::vector<byte> assetFileData;
-      ensure(tryReadEntireFile(assetPath, assetFileData));
-
 
       // TODO: get rid of manually parsing metadata in initialize. Rather use macros with offsetof to automatically populate a struct with metadata passed to the initialize function.
+      readFileAsync(std::wstring(assetPath), ThreadType::Worker, [assetType, assetMetaFileDataCopy = std::move(assetMetaFileDataCopy), assetFileExtension, pointerInAssetDirectory](ReadFileAsync& context) {
+        ensureTrue(context.status == ReadFileAsync::Status::Success);
 
-      switch (assetType)
-      {
-      #define ASSET_TYPE_CONSTRUCT(name) \
-        case AssetType::name: { \
-          TRACE_SCOPE(#name "::initialize"); \
-          name* asset = new name(); \
-          asset->initialize(assetMetaFileDataCopy.data(), assetMetaFileDataCopy.size(), assetFileData.data(), assetFileData.size(), assetFileExtension); \
-          assetBase = asset; \
-            break; \
+        Asset* assetBase = nullptr;
+        switch(assetType)
+        {
+          #define ASSET_TYPE_CONSTRUCT(name) \
+          case AssetType::name: { \
+            TRACE_SCOPE(#name "::initialize"); \
+            name* asset = new name(); \
+            asset->initialize((byte*)assetMetaFileDataCopy.data(), assetMetaFileDataCopy.size(), context.buffer.data, context.buffer.size, assetFileExtension); \
+            assetBase = asset; \
+              break; \
+          }
+
+          ASSET_TYPE_LIST(ASSET_TYPE_CONSTRUCT)
+            #undef ASSET_TYPE_CONSTRUCT
+
+          default:
+            ensureNoEntry();
+            return;
         }
 
-      ASSET_TYPE_LIST(ASSET_TYPE_CONSTRUCT)
-      #undef ASSET_TYPE_CONSTRUCT
+        assetBase->ref();
+        *pointerInAssetDirectory = assetBase;
 
-        default:
-          ensureNoEntry();
-          continue;
-      }
-
-      assetBase->ref();
-      *pointerInAssetDirectory = assetBase;
-
-      assetBase->pointerInAssetDirectory = pointerInAssetDirectory;
-      assetBase->assetType = assetType;
+        assetBase->pointerInAssetDirectory = pointerInAssetDirectory;
+        assetBase->assetType = assetType;
+      });
     }
 
     for (AssetDirectory& directory : directories)
