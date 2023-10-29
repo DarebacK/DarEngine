@@ -131,9 +131,6 @@ struct AssetDirectory
       wchar_t assetPath[MAX_PATH];
       const wchar_t* assetFileName = assetFileNames[assetIndex].c_str();
       swprintf(assetPath, arrayLength(assetPath), L"%s\\%s", path.c_str(), assetFileName);
-      std::vector<byte> assetFileData;
-      ensure(tryReadEntireFile(assetPath, assetFileData));
-
       wchar_t* fileExtension = getFileExtension(assetPath);
       memcpy(fileExtension, L"meta\0", sizeof(wchar_t) * 5);
       std::vector<byte> assetMetaFileData;
@@ -164,6 +161,11 @@ struct AssetDirectory
       Asset* assetBase = nullptr;
 
       const wchar_t* assetFileExtension = getFileExtension(assetFileName);
+      memcpy(fileExtension, L"%s\0", wcslen(assetFileExtension) * 5);
+      swprintf(assetPath, arrayLength(assetPath), L"%s\\%s", path.c_str(), assetFileName);
+      std::vector<byte> assetFileData;
+      ensure(tryReadEntireFile(assetPath, assetFileData));
+
 
       // TODO: get rid of manually parsing metadata in initialize. Rather use macros with offsetof to automatically populate a struct with metadata passed to the initialize function.
 
