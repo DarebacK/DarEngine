@@ -171,10 +171,12 @@ struct AssetDirectory
       {
       #define ASSET_TYPE_CONSTRUCT(name) \
         case AssetType::name: { \
+          TRACE_SCOPE(#name "::initialize"); \
           name* asset = new name(); \
           asset->initialize(assetMetaFileDataCopy.data(), assetMetaFileDataCopy.size(), assetFileData.data(), assetFileData.size(), assetFileExtension); \
           assetBase = asset; \
-            break; }
+            break; \
+        }
 
       ASSET_TYPE_LIST(ASSET_TYPE_CONSTRUCT)
       #undef ASSET_TYPE_CONSTRUCT

@@ -76,6 +76,8 @@ static int parseKeyValueCallback(IniDispatch* dispatch, void* userData)
 
 bool tryParseConfig(char* data, int64 dataLength, const ConfigKeyValueNodeCallback& keyValueNodeCallback)
 {
+  TRACE_SCOPE();
+
   ensureTrue(data && dataLength > 0, false);
 
   return libconfiniParse(data, dataLength - 1, parseKeyValueCallback, (void*)&keyValueNodeCallback);
@@ -116,6 +118,8 @@ static int parseSectionOrKeyValueCallback(IniDispatch* dispatch, void* userData)
 
 bool tryParseConfig(char* data, int64 dataLength, const ConfigSectionNodeCallback& sectionNodeCallback, const ConfigKeyValueNodeCallback& keyValueNodeCallback)
 {
+  TRACE_SCOPE();
+
   ensureTrue(data && dataLength > 0, false);
 
   SectionOrKeyValueCallbackContext context{ sectionNodeCallback, keyValueNodeCallback };
