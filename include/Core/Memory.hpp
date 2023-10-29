@@ -130,13 +130,16 @@ public:
     return *this;
   }
   Ref& operator=(ValueType* inPtr) noexcept
-  {
+  { 
+    if(inPtr)
+    {
+      inPtr->ref();
+    }
     if(ptr)
     {
       ptr->unref();
     }
     ptr = inPtr;
-    inPtr->ref();
     return *this;
   }
   ~Ref()
