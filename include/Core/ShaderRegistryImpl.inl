@@ -90,6 +90,8 @@ namespace D3D11
 
   void reloadShaders(LPCTSTR shaderDirectoryPath)
   {
+    TRACE_SCOPE();
+
     resetShaders();
 
     std::vector<byte> shaderBytecode;
