@@ -178,13 +178,14 @@ ReadFileAsync::Buffer::~Buffer()
     data = nullptr;
   }
 }
-void ReadFileAsync::Buffer::initialize(int64 size)
+void ReadFileAsync::Buffer::initialize(int64 inSize)
 {
   if(data)
   {
     free(data);
   }
-  data = (byte*)malloc(size);
+  data = (byte*)malloc(inSize);
+  size = inSize;
 }
 Ref<ReadFileAsync> ReadFileAsync::create()
 {
@@ -215,10 +216,12 @@ Ref<ReadFileAsync> readFileAsync(std::wstring&& path)
 
   {
     std::lock_guard lock{ readFileAsyncRequestsMutex };
-    readFileAsyncRequests.emplace(std::move(request));
+    readFileAsyncRequests.emplace(ReadFileAsyncRequest{ std::move(path), request.out });
   }
 
   SetEvent(newFileRequestEvent);
+
+  return request.out;
 }
 struct ReadFileAsyncCallback
 {
