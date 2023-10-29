@@ -45,6 +45,8 @@ private:
   friend Ref<ReadFileAsync>;
 };
 Ref<ReadFileAsync> readFileAsync(std::wstring&& path);
+// Returns TaskEvent of the callback having finished, not the read file having finished.
+Ref<TaskEvent> readFileAsync(std::wstring&& path, ThreadType callbackThread, std::function<void(ReadFileAsync&)>&& callback);
 bool tryReadEntireFile(const wchar_t* fileName, std::vector<byte>& buffer);
 bool tryReadFile(const wchar_t* fileName, byte* buffer, int64 sizeToRead);
 

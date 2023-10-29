@@ -158,6 +158,7 @@ public:
   }
 
   bool isValid() const { return ptr != nullptr; }
+  ValueType* get() const { return ptr; }
 
   ValueType* operator->() { return ptr; }
   const ValueType* operator->() const { return ptr; }

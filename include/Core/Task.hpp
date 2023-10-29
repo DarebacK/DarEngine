@@ -180,7 +180,8 @@ public:
   void taskName (void* taskParameter, const ThreadContext& threadContext) \
     { \
       TRACE_SCOPE(); \
-      TaskDataType& taskData = *static_cast<TaskDataType*>(taskParameter);
+      TaskDataType& taskData = *static_cast<TaskDataType*>(taskParameter); \
+      std::unique_ptr<TaskDataType> taskDataGuard;
 
 #define DEFINE_TASK_END \
     }

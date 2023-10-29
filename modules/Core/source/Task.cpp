@@ -317,6 +317,9 @@ static void parallelForTaskInternal(ParallelForTaskData& taskData, int64 threadI
 
 DEFINE_TASK_BEGIN(parallelForTask, ParallelForTaskData)
 {
+  // The last thread will delete the task data;
+  taskDataGuard.release();
+
   parallelForTaskInternal(taskData, threadContext.index + 1); // Calling thread is 0.
 
   if (--taskData.threadsRemaining == 0)

@@ -220,6 +220,24 @@ Ref<ReadFileAsync> readFileAsync(std::wstring&& path)
 
   SetEvent(newFileRequestEvent);
 }
+struct ReadFileAsyncCallback
+{
+  Ref<ReadFileAsync> context;
+  std::function<void(ReadFileAsync&)> callback;
+};
+DEFINE_TASK_BEGIN(readFileAsyncCallbackTask, ReadFileAsyncCallback)
+{
+  taskData.callback(*taskData.context.get());
+}
+DEFINE_TASK_END
+Ref<TaskEvent> readFileAsync(std::wstring&& path, ThreadType callbackThread, std::function<void(ReadFileAsync&)>&& callback)
+{
+  ReadFileAsyncCallback* taskData = new ReadFileAsyncCallback();
+  taskData->context = readFileAsync(std::move(path));
+  taskData->callback = std::move(callback);
+
+  return taskManager.schedule(readFileAsyncCallbackTask, taskData, callbackThread, &taskData->context->taskEvent, 1);
+}
 
 bool tryWriteFile(const wchar_t* filePath, const byte* data, int64 dataSize)
 {
