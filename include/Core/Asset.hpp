@@ -28,6 +28,7 @@ class AssetDirectoryRef
 {
 public:
 
+  AssetDirectoryRef() = default;
   // Increases the ref count of assets in the directory and it's subdirectories, potentially causing their async loading and initialization.
   AssetDirectoryRef(const wchar_t* path);
   AssetDirectoryRef(const AssetDirectoryRef& other);
@@ -35,6 +36,8 @@ public:
   ~AssetDirectoryRef();
   AssetDirectoryRef& operator=(const AssetDirectoryRef& other);
   AssetDirectoryRef& operator=(AssetDirectoryRef&& other);
+
+  void initialize(const wchar_t* path);
 
   // path is relative path from this directory.
   template<typename AssetType>
@@ -66,6 +69,8 @@ protected:
   Asset(Asset&& other) = delete;
 
 public:
+
+  Ref<TaskEvent> initializedTaskEvent = TaskEvent::create();
 
   // Used to delete itself from the asset directory after ref count reaches zero.
   // TODO: maybe we don't have to delete the assets? Just call destructor/constructor without deletion.

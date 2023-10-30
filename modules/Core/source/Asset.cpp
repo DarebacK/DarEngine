@@ -158,29 +158,50 @@ struct AssetDirectory
       }
 
       Asset** pointerInAssetDirectory = &assets[assetIndex];
+      Ref<Asset> assetRef; // Need to keep the asset alive until the initialization
+      switch(assetType)
+      {
+        #define ASSET_TYPE_CONSTRUCT(name) \
+          case AssetType::name: { \
+            name* asset = new name(); \
+            *pointerInAssetDirectory = asset; \
+            asset->pointerInAssetDirectory = pointerInAssetDirectory; \
+            asset->assetType = assetType; \
+            assetRef = asset; \
+              break; \
+          }
+
+        ASSET_TYPE_LIST(ASSET_TYPE_CONSTRUCT)
+          #undef ASSET_TYPE_CONSTRUCT
+
+        default:
+          ensureNoEntry();
+          return;
+      }
 
       const wchar_t* assetFileExtension = getFileExtension(assetFileName);
       memcpy(fileExtension, L"%s\0", wcslen(assetFileExtension) * 5);
       swprintf(assetPath, arrayLength(assetPath), L"%s\\%s", path.c_str(), assetFileName);
 
       // TODO: get rid of manually parsing metadata in initialize. Rather use macros with offsetof to automatically populate a struct with metadata passed to the initialize function.
-      readFileAsync(std::wstring(assetPath), ThreadType::Worker, [assetType, assetMetaFileDataCopy = std::move(assetMetaFileDataCopy), assetFileExtension, pointerInAssetDirectory](ReadFileAsync& context) {
+      readFileAsync(std::wstring(assetPath), ThreadType::Worker, [assetType, assetMetaFileDataCopy = std::move(assetMetaFileDataCopy), assetFileExtension, pointerInAssetDirectory, assetRef = std::move(assetRef)](ReadFileAsync& context) {
         ensureTrue(context.status == ReadFileAsync::Status::Success);
 
         Asset* assetBase = nullptr;
         switch(assetType)
         {
-          #define ASSET_TYPE_CONSTRUCT(name) \
+          #define ASSET_TYPE_INITIALIZE(name) \
           case AssetType::name: { \
             TRACE_SCOPE(#name "::initialize"); \
-            name* asset = new name(); \
+            name* asset = reinterpret_cast<name*>(*pointerInAssetDirectory); \
             asset->initialize((byte*)assetMetaFileDataCopy.data(), assetMetaFileDataCopy.size(), context.buffer.data, context.buffer.size, assetFileExtension); \
+            asset->initializedTaskEvent->complete(); \
             assetBase = asset; \
               break; \
           }
 
-          ASSET_TYPE_LIST(ASSET_TYPE_CONSTRUCT)
-            #undef ASSET_TYPE_CONSTRUCT
+          ASSET_TYPE_LIST(ASSET_TYPE_INITIALIZE)
+            #undef ASSET_TYPE_INITIALIZE
 
           default:
             ensureNoEntry();
@@ -188,10 +209,6 @@ struct AssetDirectory
         }
 
         assetBase->ref();
-        *pointerInAssetDirectory = assetBase;
-
-        assetBase->pointerInAssetDirectory = pointerInAssetDirectory;
-        assetBase->assetType = assetType;
       });
     }
 
@@ -351,18 +368,32 @@ AssetDirectory* findDirectory(const wchar_t* path)
 }
 
 AssetDirectoryRef::AssetDirectoryRef(const wchar_t* path)
-  : directory(findDirectory(path))
 {
-  ensureTrue(isInMainThread());
-  ensureTrue(directory != nullptr);
-
-  directory->loadAssetsIncludingSubdirectories();
-  // TODO: Traverse the subtree, increase ref count and add each assets loaded task event to an array, 
-  // which will be a prerequisite to a task that sets the returned task event ref to completed.
+  initialize(path);
 }
 AssetDirectoryRef::~AssetDirectoryRef()
 {
-  directory->unloadAssetsIncludingSubdirectories();
+  if(directory)
+  {
+    directory->unloadAssetsIncludingSubdirectories();
+  }
+}
+void AssetDirectoryRef::initialize(const wchar_t* path)
+{
+  ensureTrue(isInMainThread());
+
+  if(directory)
+  {
+    directory->unloadAssetsIncludingSubdirectories();
+  }
+
+  directory = findDirectory(path);
+  if(ensure(directory))
+  {
+    directory->loadAssetsIncludingSubdirectories();
+  }
+  // TODO: Traverse the subtree, increase ref count and add each assets loaded task event to an array, 
+  // which will be a prerequisite to a task that sets the returned task event ref to completed.
 }
 
 Asset* internalFindAsset(AssetDirectory* directory, const wchar_t* path)
