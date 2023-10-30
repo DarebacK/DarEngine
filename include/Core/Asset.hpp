@@ -86,8 +86,18 @@ private:
 };
 Asset* internalFindAsset(AssetDirectory* directory, const wchar_t* path);
 
-class Config : public Asset
-{
+#define ASSET_META_PROPERTY_EMPTY(type, name, defaultValue)
+#define ASSET_META_PROPERTY_FIELD(type, name, defaultValue) type name = defaultValue;
+
+#define ASSET_CLASS_BEGIN(name) \
+class name : public Asset \
+{ 
+
+#define ASSET_CLASS_END ASSET_META_PROPERTY_LIST(ASSET_META_PROPERTY_EMPTY, ASSET_META_PROPERTY_FIELD) \
+};
+
+
+ASSET_CLASS_BEGIN(Config)
 public:
 
   void initialize(byte* metaData, int64 metaDataLength, byte* fileData, int64 fileDataLength, const wchar_t* fileNameExtension);
@@ -101,10 +111,11 @@ public:
 private:
 
   std::unordered_map<std::string, std::string> keysToValues;
-};
 
-class Texture2D : public Asset
-{
+  #define ASSET_META_PROPERTY_LIST(initializationProperty, fieldProperty)
+ASSET_CLASS_END
+
+ASSET_CLASS_BEGIN(Texture2D)
 public:
 
   void initialize(byte* metaData, int64 metaDataLength, byte* fileData, int64 fileDataLength, const wchar_t* fileNameExtension);
@@ -112,10 +123,6 @@ public:
   CComPtr<ID3D11ShaderResourceView> view;
   CComPtr<ID3D11Texture2D> texture;
 
-  int32 width = 0;
-  int32 height = 0;
-  int8 mipLevelCount = 1;
-  PixelFormat pixelFormat = PixelFormat::Invalid;
   enum class CpuAccess : uint8
   {
     None = 0,
@@ -124,7 +131,13 @@ public:
     ReadWrite
   };
   CpuAccess cpuAccess = CpuAccess::None;
-};
+
+  #define ASSET_META_PROPERTY_LIST(initializationProperty, fieldProperty) \
+  fieldProperty(int32, width, 0) \
+  fieldProperty(int32, height, 0) \
+  initializationProperty(int8, mipLevelCount, 1) \
+  initializationProperty(PixelFormat, pixelFormat, PixelFormat::Invalid)
+ASSET_CLASS_END
 
 #define FIND_ASSET_INSTANTIATION(name) \
   template<> name* AssetDirectoryRef::findAsset<name>(const wchar_t* path) const;

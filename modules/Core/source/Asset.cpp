@@ -533,7 +533,10 @@ DXGI_FORMAT toDxgiFormat(PixelFormat pixelFormat)
 
 void Texture2D::initialize(byte* metaData, int64 metaDataLength, byte* fileData, int64 fileDataLength, const wchar_t* fileNameExtension)
 {
-  tryParseConfig(reinterpret_cast<char*>(metaData), metaDataLength, [this](const ConfigKeyValueNode& node) -> bool {
+  int8 mipLevelCount = 1;
+  PixelFormat pixelFormat = PixelFormat::Invalid;
+
+  tryParseConfig(reinterpret_cast<char*>(metaData), metaDataLength, [&](const ConfigKeyValueNode& node) -> bool {
     if(node.isKey("CpuAccess"))
     {
       if(isEqual(node.value, "Read"))
