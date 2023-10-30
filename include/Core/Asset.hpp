@@ -113,7 +113,8 @@ struct AssetMetaPropertyReflection
   uint8 offset = 0;
   AssetMetaPropertyType type;
 };
-#define ASSET_META_PROPERTY_REFLECTION(type, name, defaultValue) {#name, #type, sizeof(type), offsetof(AssetClassType, name), ToAssetMetaPropertType<type>::result},
+#define ASSET_META_PROPERTY_INITIALIZATION_REFLECTION(type, name, defaultValue) {#name, #type, sizeof(type), offsetof(InitializationProperties, name), ToAssetMetaPropertType<type>::result},
+#define ASSET_META_PROPERTY_FIELD_REFLECTION(type, name, defaultValue) {#name, #type, sizeof(type), offsetof(AssetClassType, name), ToAssetMetaPropertType<type>::result},
 
 template<typename T, class = void>
 struct ToAssetMetaPropertType
@@ -138,17 +139,28 @@ DEFINE_ToAssetMetaPropertyType(int64, Int)
 DEFINE_ToAssetMetaPropertyType(float, Float)
 
 #define ASSET_CLASS_END(name) ASSET_META_PROPERTY_LIST(ASSET_META_PROPERTY_EMPTY, ASSET_META_PROPERTY_FIELD) \
-  struct name##InitializationProperties \
-  { \
-    ASSET_META_PROPERTY_LIST(ASSET_META_PROPERTY_FIELD, ASSET_META_PROPERTY_EMPTY) \
-  }; \
-  static constexpr int64 fieldPropertyCount = 1 ASSET_META_PROPERTY_LIST(ASSET_META_PROPERTY_EMPTY, ASSET_META_PROPERTY_PLUS_ONE) ; \
-  const AssetMetaPropertyReflection fieldPropertyReflections[fieldPropertyCount] = { \
-    {"assetType", "AssetType", sizeof(AssetType), offsetof(name, assetType), AssetMetaPropertyType::Enum}, \
-    ASSET_META_PROPERTY_LIST(ASSET_META_PROPERTY_EMPTY, ASSET_META_PROPERTY_REFLECTION) \
-  }; \
-  }; // TODO: make fieldPropertyReflections once per class
-
+    struct InitializationProperties \
+    { \
+      ASSET_META_PROPERTY_LIST(ASSET_META_PROPERTY_FIELD, ASSET_META_PROPERTY_EMPTY) \
+    }; \
+    \
+    static constexpr int64 metaFieldPropertyCount = 1 ASSET_META_PROPERTY_LIST(ASSET_META_PROPERTY_EMPTY, ASSET_META_PROPERTY_PLUS_ONE) ; \
+    static const AssetMetaPropertyReflection* getMetaFieldPropertyReflections() { \
+      static const AssetMetaPropertyReflection fieldPropertyReflections[metaFieldPropertyCount] = { \
+        {"assetType", "AssetType", sizeof(AssetType), offsetof(name, assetType), AssetMetaPropertyType::Enum}, \
+        ASSET_META_PROPERTY_LIST(ASSET_META_PROPERTY_EMPTY, ASSET_META_PROPERTY_FIELD_REFLECTION) \
+      }; \
+      return fieldPropertyReflections; \
+    } \
+    \
+    static constexpr int64 initializationFieldPropertyCount = 0 ASSET_META_PROPERTY_LIST(ASSET_META_PROPERTY_PLUS_ONE, ASSET_META_PROPERTY_EMPTY) ; \
+    static const AssetMetaPropertyReflection* getInitializationPropertyReflections() { \
+      static const AssetMetaPropertyReflection initializationPropertyReflections[initializationFieldPropertyCount + 1] = { \
+        ASSET_META_PROPERTY_LIST(ASSET_META_PROPERTY_INITIALIZATION_REFLECTION, ASSET_META_PROPERTY_EMPTY) \
+      }; \
+      return initializationPropertyReflections; \
+    } \
+  };
 
 ASSET_CLASS_BEGIN(Config)
 public:
