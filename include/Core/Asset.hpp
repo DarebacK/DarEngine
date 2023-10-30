@@ -86,15 +86,68 @@ private:
 };
 Asset* internalFindAsset(AssetDirectory* directory, const wchar_t* path);
 
+#define ASSET_CLASS_BEGIN(name) \
+  class name : public Asset \
+  { \
+    using AssetClassType = name;
+
 #define ASSET_META_PROPERTY_EMPTY(type, name, defaultValue)
 #define ASSET_META_PROPERTY_FIELD(type, name, defaultValue) type name = defaultValue;
+#define ASSET_META_PROPERTY_PLUS_ONE(type, name, defaultValue) + 1
 
-#define ASSET_CLASS_BEGIN(name) \
-class name : public Asset \
-{ 
-
-#define ASSET_CLASS_END ASSET_META_PROPERTY_LIST(ASSET_META_PROPERTY_EMPTY, ASSET_META_PROPERTY_FIELD) \
+enum class AssetMetaPropertyType : uint8
+{
+  Unknown = 0,
+  Int,
+  Float,
+  Enum 
+  // TODO: for string to enum conversions we will probably have to create a global map like map<EnumTypeString, map<EnumValueString, Value>>;
+  //       we can use std::is_unsigned<std::underlying_type_t<AssetMetaPropertyType>> to check whether the enum is signed/unsigned.
+  //       or just we will have to pass it as a string initializeProperty and then parse it in initialize.
 };
+struct AssetMetaPropertyReflection
+{
+  const char* name = nullptr;
+  const char* typeName = nullptr;
+  uint8 size = 0;
+  uint8 offset = 0;
+  AssetMetaPropertyType type;
+};
+#define ASSET_META_PROPERTY_REFLECTION(type, name, defaultValue) {#name, #type, sizeof(type), offsetof(AssetClassType, name), ToAssetMetaPropertType<type>::result},
+
+template<typename T, class = void>
+struct ToAssetMetaPropertType
+{
+  static constexpr AssetMetaPropertyType result = AssetMetaPropertyType::Unknown;
+};
+template<typename EnumType>
+struct ToAssetMetaPropertType<EnumType, std::enable_if_t<std::is_enum_v<EnumType>, std::true_type>>
+{
+  static constexpr AssetMetaPropertyType result = AssetMetaPropertyType::Enum;
+};
+#define DEFINE_ToAssetMetaPropertyType(input, output) \
+  template<> \
+  struct ToAssetMetaPropertType<input> \
+  { \
+    static constexpr AssetMetaPropertyType result = AssetMetaPropertyType::output; \
+  };
+DEFINE_ToAssetMetaPropertyType(int8, Int)
+DEFINE_ToAssetMetaPropertyType(int16, Int)
+DEFINE_ToAssetMetaPropertyType(int32, Int)
+DEFINE_ToAssetMetaPropertyType(int64, Int)
+DEFINE_ToAssetMetaPropertyType(float, Float)
+
+#define ASSET_CLASS_END(name) ASSET_META_PROPERTY_LIST(ASSET_META_PROPERTY_EMPTY, ASSET_META_PROPERTY_FIELD) \
+  struct name##InitializationProperties \
+  { \
+    ASSET_META_PROPERTY_LIST(ASSET_META_PROPERTY_FIELD, ASSET_META_PROPERTY_EMPTY) \
+  }; \
+  static constexpr int64 fieldPropertyCount = 1 ASSET_META_PROPERTY_LIST(ASSET_META_PROPERTY_EMPTY, ASSET_META_PROPERTY_PLUS_ONE) ; \
+  const AssetMetaPropertyReflection fieldPropertyReflections[fieldPropertyCount] = { \
+    {"assetType", "AssetType", sizeof(AssetType), offsetof(name, assetType), AssetMetaPropertyType::Enum}, \
+    ASSET_META_PROPERTY_LIST(ASSET_META_PROPERTY_EMPTY, ASSET_META_PROPERTY_REFLECTION) \
+  }; \
+  }; // TODO: make fieldPropertyReflections once per class
 
 
 ASSET_CLASS_BEGIN(Config)
@@ -113,7 +166,7 @@ private:
   std::unordered_map<std::string, std::string> keysToValues;
 
   #define ASSET_META_PROPERTY_LIST(initializationProperty, fieldProperty)
-ASSET_CLASS_END
+ASSET_CLASS_END(Config)
 
 ASSET_CLASS_BEGIN(Texture2D)
 public:
@@ -137,7 +190,7 @@ public:
   fieldProperty(int32, height, 0) \
   initializationProperty(int8, mipLevelCount, 1) \
   initializationProperty(PixelFormat, pixelFormat, PixelFormat::Invalid)
-ASSET_CLASS_END
+ASSET_CLASS_END(Texture2D)
 
 #define FIND_ASSET_INSTANTIATION(name) \
   template<> name* AssetDirectoryRef::findAsset<name>(const wchar_t* path) const;
