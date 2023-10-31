@@ -183,6 +183,8 @@ struct AssetDirectory
       memcpy(fileExtension, L"%s\0", wcslen(assetFileExtension) * 5);
       swprintf(assetPath, arrayLength(assetPath), L"%s\\%s", path.c_str(), assetFileName);
 
+      // TODO: use file memory mapping for textures to avoid the unnecessary intermediate buffer.
+
       // TODO: get rid of manually parsing metadata in initialize. Rather use macros with offsetof to automatically populate a struct with metadata passed to the initialize function.
       readFileAsync(std::wstring(assetPath), ThreadType::Worker, [assetType, assetMetaFileDataCopy = std::move(assetMetaFileDataCopy), assetFileExtension, pointerInAssetDirectory, assetRef = std::move(assetRef)](ReadFileAsync& context) {
         ensureTrue(context.status == ReadFileAsync::Status::Success);
@@ -533,6 +535,8 @@ DXGI_FORMAT toDxgiFormat(PixelFormat pixelFormat)
 
 void Texture2D::initialize(byte* metaData, int64 metaDataLength, byte* fileData, int64 fileDataLength, const wchar_t* fileNameExtension)
 {
+  // TODO: Maybe don't use dds files anymore as we have the meta file? We could get rid of passing fileNameExtension then.
+
   int8 mipLevelCount = 1;
   PixelFormat pixelFormat = PixelFormat::Invalid;
 
