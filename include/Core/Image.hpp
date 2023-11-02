@@ -4,21 +4,32 @@
 
 // General -----------------------------------------------------------------------------------------
 
-enum class PixelFormat : uint8
-{
-  Invalid = 0,
+#define DAR_ENUM_CLASS_BEGIN(name, valueType) \
+  using name##ValueType = valueType; \
+  enum class name : valueType {
 
-  RGBA,
-  BGRA,
-  ARGB,
-  ABGR,
-  CMYK,
-  RGB,
-  BGR,
-  Grayscale,
-  BC1,
-  int16
-};
+#define DAR_ENUM_VALUE(name, ...) name __VA_ARGS__,
+#define DAR_ENUM_INCREMENT(name, ...) + 1
+#define DAR_ENUM_CLASS_END(name) \
+    DAR_ENUM_LIST(DAR_ENUM_VALUE) \
+  }; \
+  constexpr int64 name##ValueCount = 0 DAR_ENUM_LIST(DAR_ENUM_INCREMENT);
+
+DAR_ENUM_CLASS_BEGIN(PixelFormat, uint8)
+#define DAR_ENUM_LIST(e) \
+  e(Invalid, = 0) \
+  e(RGBA) \
+  e(BGRA) \
+  e(ARGB) \
+  e(ABGR) \
+  e(CMYK) \
+  e(RGB) \
+  e(BGR) \
+  e(Grayscale) \
+  e(BC1) \
+  e(int16)
+DAR_ENUM_CLASS_END(PixelFormat)
+
 const char* toString(PixelFormat pixelFormat);
 PixelFormat toPixelFormat(const char* string);
 int8 toChannelCount(PixelFormat pixelFormat);
