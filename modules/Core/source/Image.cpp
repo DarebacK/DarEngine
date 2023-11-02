@@ -141,13 +141,16 @@ static CMP_FORMAT toCmpFormat(PixelFormat format)
 
 Image ImageEncoder::ToBC1Parallel(const Image& source, int64 quality)
 {
+  ensureTrue(source.getDataSize() >= 0, {});
+  ensureTrue(source.width >= 0, {});
+
   CMP_Texture sourceTexture{};
   sourceTexture.dwSize = sizeof(CMP_Texture);
   sourceTexture.dwWidth = source.width;
   sourceTexture.dwHeight = source.height;
-  sourceTexture.dwPitch = calculatePitch(source.pixelFormat, source.width);
+  sourceTexture.dwPitch = (CMP_DWORD)calculatePitch(source.pixelFormat, source.width);
   sourceTexture.format = toCmpFormat(source.pixelFormat);
-  sourceTexture.dwDataSize = source.getDataSize();
+  sourceTexture.dwDataSize = (CMP_DWORD)source.getDataSize();
   sourceTexture.pData = source.data;
 
   CMP_Texture destinationTexture{};
@@ -495,13 +498,16 @@ Image WebpReader::read(const byte* data, int64 dataSize, PixelFormat outputPixel
 
 void writeAsDds(const Image& image, const char* fileName)
 {
+  ensureTrue(image.width > 0);
+  ensureTrue(image.getDataSize() > 0);
+
   CMP_Texture texture{};
   texture.dwSize = sizeof(texture);
   texture.dwWidth = image.width;
   texture.dwHeight = image.height;
-  texture.dwPitch = calculatePitch(image.pixelFormat, image.width);
+  texture.dwPitch = (CMP_DWORD)calculatePitch(image.pixelFormat, image.width);
   texture.format = toCmpFormat(image.pixelFormat);
-  texture.dwDataSize = image.getDataSize();
+  texture.dwDataSize = (CMP_DWORD)image.getDataSize();
   texture.pData = image.data;
 
   SaveDDSFile(fileName, texture);

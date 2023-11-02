@@ -244,6 +244,8 @@ Ref<TaskEvent> readFileAsync(std::wstring&& path, ThreadType callbackThread, std
 
 bool tryWriteFile(const wchar_t* filePath, const byte* data, int64 dataSize)
 {
+  ensureTrue(dataSize > 0, false);
+
   HANDLE file = CreateFile(filePath, GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
   if (file == INVALID_HANDLE_VALUE)
   {
@@ -251,7 +253,7 @@ bool tryWriteFile(const wchar_t* filePath, const byte* data, int64 dataSize)
   }
 
   DWORD bytesWritten;
-  if (!WriteFile(file, data, dataSize, &bytesWritten, nullptr))
+  if (!WriteFile(file, data, (DWORD)dataSize, &bytesWritten, nullptr))
   {
     CloseHandle(file);
     return false;

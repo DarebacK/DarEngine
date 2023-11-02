@@ -103,8 +103,10 @@ void Asset::unref()
   }
 }
 
-struct AssetDirectory
+class AssetDirectory
 {
+public:
+
   std::wstring name;
   std::wstring path;
   std::vector<AssetDirectory> directories;
@@ -424,7 +426,7 @@ Asset* internalFindAsset(AssetDirectory* directory, const wchar_t* path)
   }
 
   const wchar_t* fileName = subPath;
-  for (int64 assetIndex = 0; assetIndex < lastDirectory->assetFileNames.size(); ++assetIndex)
+  for (uint64 assetIndex = 0; assetIndex < lastDirectory->assetFileNames.size(); ++assetIndex)
   {
     const wchar_t* assetFileName = lastDirectory->assetFileNames[assetIndex].c_str();
     if (isEqual(fileName, assetFileName))
@@ -515,12 +517,7 @@ int64 Config::getInt(const char* key) const
 const std::string& Config::getString(const char* key) const
 {
   auto it = keysToValues.find(key);
-  if (it == keysToValues.end())
-  {
-    ensureNoEntry();
-    return {};
-  }
-
+  ensure(it == keysToValues.end());
   return it->second;
 }
 
@@ -604,7 +601,7 @@ void Texture2D::initialize(byte* metaData, int64 metaDataLength, byte* fileData,
     const D3D11_TEXTURE2D_DESC description = {
       UINT(width),
       UINT(height),
-      mipLevelCount,
+      UINT(mipLevelCount),
       1,
       toDxgiFormat(pixelFormat),
       {1, 0},
