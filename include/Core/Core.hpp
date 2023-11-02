@@ -167,3 +167,26 @@ inline int16 bigEndianToNative(int16 value)
 #define TRACE_STOP_CAPTURE(...) OPTICK_STOP_CAPTURE(); OPTICK_SAVE_CAPTURE(__VA_ARGS__);
 
 #define CACHE_LINE_SIZE 64
+
+// Enum ********************************************************************************************
+#define DAR_ENUM_CLASS_BEGIN(name, valueType) \
+  using name##ValueType = valueType; \
+  enum class name : valueType {
+
+#define DAR_ENUM_VALUE(name, ...) name __VA_ARGS__,
+#define DAR_ENUM_INCREMENT(name, ...) + 1
+#define DAR_ENUM_FROM_STRING(name, ...) else if(strcmp(string, #name) == 0) return EnumType::name;
+#define DAR_ENUM_CLASS_END(name) \
+    DAR_ENUM_LIST(DAR_ENUM_VALUE) \
+  }; \
+  constexpr int64 name##ValueCount = 0 DAR_ENUM_LIST(DAR_ENUM_INCREMENT); \
+  template<typename EnumType> \
+  EnumType toEnum(const char* string) \
+  { \
+    if(false) {} \
+    DAR_ENUM_LIST(DAR_ENUM_FROM_STRING) \
+  } \
+  inline name to##name(const char* string) \
+  { \
+    return toEnum<name>(string); \
+  }

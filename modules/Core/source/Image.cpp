@@ -22,18 +22,6 @@ const char* toString(PixelFormat pixelFormat)
     default: ensureNoEntry(); return "";
   }
 }
-PixelFormat toPixelFormat(const char* string)
-{
-  // TODO: implement for all cases, maybe using a list macro?
-  if(isEqual(string, "int16"))
-  {
-    return PixelFormat::int16;
-  }
-  else
-  {
-    ensureNoEntry(); return PixelFormat::Invalid;
-  }
-}
 int8 toChannelCount(PixelFormat pixelFormat)
 {
   switch (pixelFormat)
