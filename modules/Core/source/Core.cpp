@@ -1,5 +1,7 @@
 #include "Core/Core.hpp"
 
+#include <unordered_map>
+
 #include "Core/Math.hpp"
 
 #ifdef DAR_DEBUG
@@ -19,3 +21,29 @@ void _debugStringImpl(const wchar_t* newStr, int newStrLength)
   }
 }
 #endif
+
+// Enum ********************************************************************************************
+
+// ! Do not access in static object's constructor !
+const std::unordered_map<const char*, void*>* enumNameToToEnumFunctionPtr;
+
+EnumRegisterer::EnumRegisterer(const char* name, void* toEnum)
+{
+  // Ensures that enumNameToToEnumFunction is initialized before we access it.
+  static std::unordered_map<const char*, void*> enumNameToToEnumFunction;
+  enumNameToToEnumFunctionPtr = &enumNameToToEnumFunction;
+
+  auto itInsertedPair = enumNameToToEnumFunction.try_emplace(name, toEnum);
+  ensureTrue(itInsertedPair.second);
+}
+void* findToEnumFunction(const char* enumName)
+{
+  auto it = enumNameToToEnumFunctionPtr->find(enumName);
+  if(it == enumNameToToEnumFunctionPtr->end())
+  {
+    ensureNoEntry();
+    return nullptr;
+  }
+
+  return it->second;
+}

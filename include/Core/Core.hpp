@@ -173,9 +173,20 @@ inline int16 bigEndianToNative(int16 value)
   using name##ValueType = valueType; \
   enum class name : valueType {
 
+class EnumRegisterer
+{
+public:
+
+  EnumRegisterer(const char* name, void* toEnum);
+  EnumRegisterer(const EnumRegisterer& other) = delete;
+  EnumRegisterer(EnumRegisterer&& other) = delete;
+};
+void* findToEnumFunction(const char* enumName);
+
 #define DAR_ENUM_VALUE(name, ...) name __VA_ARGS__,
 #define DAR_ENUM_INCREMENT(name, ...) + 1
 #define DAR_ENUM_FROM_STRING(name, ...) else if(strcmp(string, #name) == 0) return EnumType::name;
+
 #define DAR_ENUM_CLASS_END(name) \
     DAR_ENUM_LIST(DAR_ENUM_VALUE) \
   }; \
@@ -185,8 +196,17 @@ inline int16 bigEndianToNative(int16 value)
   { \
     if(false) {} \
     DAR_ENUM_LIST(DAR_ENUM_FROM_STRING) \
+    else \
+    { \
+      ensureNoEntry(); \
+      return static_cast<EnumType>(0); \
+    } \
   } \
-  inline name to##name(const char* string) \
+  name to##name(const char* string);
+
+#define DAR_ENUM_IMPLEMENT(name) \
+  name to##name(const char* string) \
   { \
     return toEnum<name>(string); \
-  }
+  } \
+  static EnumRegisterer name##EnumRegisterer{#name, reinterpret_cast<void*>(&to##name)};

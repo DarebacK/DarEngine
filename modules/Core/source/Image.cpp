@@ -13,6 +13,8 @@
 
 // General -----------------------------------------------------------------------------------------
 
+DAR_ENUM_IMPLEMENT(PixelFormat);
+
 const char* toString(PixelFormat pixelFormat)
 {
   // TODO: implement for all cases, maybe using a list macro?
