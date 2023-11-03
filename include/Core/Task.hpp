@@ -181,7 +181,7 @@ public:
     { \
       TRACE_SCOPE(); \
       TaskDataType& taskData = *static_cast<TaskDataType*>(taskParameter); \
-      std::unique_ptr<TaskDataType> taskDataGuard;
+      std::unique_ptr<TaskDataType> taskDataGuard{&taskData};
 
 #define DEFINE_TASK_END \
     }
