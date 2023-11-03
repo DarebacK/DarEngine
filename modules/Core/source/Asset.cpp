@@ -161,6 +161,10 @@ public:
 
       Asset** pointerInAssetDirectory = &assets[assetIndex];
       Ref<Asset> assetRef; // Need to keep the asset alive until the initialization
+      const AssetMetaPropertyReflection* metaFieldPropertyReflections;
+      int64 metaFieldPropertyReflectionCount;
+      const AssetMetaPropertyReflection* initializationPropertyReflections;
+      int64 initializationPropertyReflectionCount;
       switch(assetType)
       {
         #define ASSET_TYPE_CONSTRUCT(name) \
@@ -170,6 +174,10 @@ public:
             asset->pointerInAssetDirectory = pointerInAssetDirectory; \
             asset->assetType = assetType; \
             assetRef = asset; \
+            metaFieldPropertyReflections = name::getMetaFieldPropertyReflections(); \
+            metaFieldPropertyReflectionCount = name::metaFieldPropertyCount; \
+            initializationPropertyReflections = name::getInitializationPropertyReflections(); \
+            initializationPropertyReflectionCount = name::initializationFieldPropertyCount; \
               break; \
           }
 

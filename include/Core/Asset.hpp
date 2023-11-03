@@ -152,6 +152,7 @@ DEFINE_ToAssetMetaPropertyType(uint64, Uint64)
 DEFINE_ToAssetMetaPropertyType(float, Float)
 
 #define ASSET_CLASS_END(name) ASSET_META_PROPERTY_LIST(ASSET_META_PROPERTY_EMPTY, ASSET_META_PROPERTY_FIELD) \
+  public: \
     struct InitializationProperties \
     { \
       ASSET_META_PROPERTY_LIST(ASSET_META_PROPERTY_FIELD, ASSET_META_PROPERTY_EMPTY) \
