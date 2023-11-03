@@ -160,7 +160,6 @@ public:
       }
 
       Asset** pointerInAssetDirectory = &assets[assetIndex];
-      Ref<Asset> assetRef; // Need to keep the asset alive until the initialization
       const AssetMetaPropertyReflection* metaFieldPropertyReflections;
       int64 metaFieldPropertyReflectionCount;
       const AssetMetaPropertyReflection* initializationPropertyReflections;
@@ -173,7 +172,7 @@ public:
             *pointerInAssetDirectory = asset; \
             asset->pointerInAssetDirectory = pointerInAssetDirectory; \
             asset->assetType = assetType; \
-            assetRef = asset; \
+            asset->ref(); \
             metaFieldPropertyReflections = name::getMetaFieldPropertyReflections(); \
             metaFieldPropertyReflectionCount = name::metaFieldPropertyCount; \
             initializationPropertyReflections = name::getInitializationPropertyReflections(); \
@@ -196,10 +195,9 @@ public:
       // TODO: use file memory mapping for textures to avoid the unnecessary intermediate buffer.
 
       // TODO: get rid of manually parsing metadata in initialize. Rather use macros with offsetof to automatically populate a struct with metadata passed to the initialize function.
-      readFileAsync(std::wstring(assetPath), ThreadType::Worker, [assetType, assetMetaFileDataCopy = std::move(assetMetaFileDataCopy), assetFileExtension, pointerInAssetDirectory, assetRef = std::move(assetRef)](ReadFileAsync& context) {
+      readFileAsync(std::wstring(assetPath), ThreadType::Worker, [assetType, assetMetaFileDataCopy = std::move(assetMetaFileDataCopy), assetFileExtension, pointerInAssetDirectory](ReadFileAsync& context) {
         ensureTrue(context.status == ReadFileAsync::Status::Success);
 
-        Asset* assetBase = nullptr;
         switch(assetType)
         {
           #define ASSET_TYPE_INITIALIZE(name) \
@@ -208,7 +206,6 @@ public:
             name* asset = reinterpret_cast<name*>(*pointerInAssetDirectory); \
             asset->initialize((byte*)assetMetaFileDataCopy.data(), assetMetaFileDataCopy.size(), context.buffer.data, context.buffer.size, assetFileExtension); \
             asset->initializedTaskEvent->complete(); \
-            assetBase = asset; \
               break; \
           }
 
@@ -219,8 +216,6 @@ public:
             ensureNoEntry();
             return;
         }
-
-        assetBase->ref();
       });
     }
 
