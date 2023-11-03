@@ -98,9 +98,17 @@ Asset* internalFindAsset(AssetDirectory* directory, const wchar_t* path);
 enum class AssetMetaPropertyType : uint8
 {
   Unknown = 0,
-  Int,
+  Int8,
+  Int16,
+  Int32,
+  Int64,
+  Uint8,
+  Uint16,
+  Uint32,
+  Uint64,
   Float,
-  Enum 
+  SignedEnum,
+  UnsignedEnum
   // TODO: for string to enum conversions we will probably have to create a global map like map<EnumTypeString, map<EnumValueString, Value>>;
   //       we can use std::is_unsigned<std::underlying_type_t<AssetMetaPropertyType>> to check whether the enum is signed/unsigned.
   //       or just we will have to pass it as a string initializeProperty and then parse it in initialize.
@@ -124,7 +132,8 @@ struct ToAssetMetaPropertType
 template<typename EnumType>
 struct ToAssetMetaPropertType<EnumType, std::enable_if_t<std::is_enum_v<EnumType>, std::true_type>>
 {
-  static constexpr AssetMetaPropertyType result = AssetMetaPropertyType::Enum;
+  static constexpr AssetMetaPropertyType result = std::is_signed<std::underlying_type_t<EnumType>>::result ? 
+    AssetMetaPropertyType::SignedEnum : AssetMetaPropertyType::UnsignedEnum;
 };
 #define DEFINE_ToAssetMetaPropertyType(input, output) \
   template<> \
@@ -132,10 +141,14 @@ struct ToAssetMetaPropertType<EnumType, std::enable_if_t<std::is_enum_v<EnumType
   { \
     static constexpr AssetMetaPropertyType result = AssetMetaPropertyType::output; \
   };
-DEFINE_ToAssetMetaPropertyType(int8, Int)
-DEFINE_ToAssetMetaPropertyType(int16, Int)
-DEFINE_ToAssetMetaPropertyType(int32, Int)
-DEFINE_ToAssetMetaPropertyType(int64, Int)
+DEFINE_ToAssetMetaPropertyType(int8, Int8)
+DEFINE_ToAssetMetaPropertyType(int16, Int16)
+DEFINE_ToAssetMetaPropertyType(int32, Int32)
+DEFINE_ToAssetMetaPropertyType(int64, Int64)
+DEFINE_ToAssetMetaPropertyType(uint8, Uint8)
+DEFINE_ToAssetMetaPropertyType(uint16, Uint16)
+DEFINE_ToAssetMetaPropertyType(uint32, Uint32)
+DEFINE_ToAssetMetaPropertyType(uint64, Uint64)
 DEFINE_ToAssetMetaPropertyType(float, Float)
 
 #define ASSET_CLASS_END(name) ASSET_META_PROPERTY_LIST(ASSET_META_PROPERTY_EMPTY, ASSET_META_PROPERTY_FIELD) \
@@ -147,7 +160,7 @@ DEFINE_ToAssetMetaPropertyType(float, Float)
     static constexpr int64 metaFieldPropertyCount = 1 ASSET_META_PROPERTY_LIST(ASSET_META_PROPERTY_EMPTY, ASSET_META_PROPERTY_PLUS_ONE) ; \
     static const AssetMetaPropertyReflection* getMetaFieldPropertyReflections() { \
       static const AssetMetaPropertyReflection fieldPropertyReflections[metaFieldPropertyCount] = { \
-        {"assetType", "AssetType", sizeof(AssetType), offsetof(name, assetType), AssetMetaPropertyType::Enum}, \
+        {"assetType", "AssetType", sizeof(AssetType), offsetof(name, assetType), ToAssetMetaPropertType<AssetMetaPropertyType>::result}, \
         ASSET_META_PROPERTY_LIST(ASSET_META_PROPERTY_EMPTY, ASSET_META_PROPERTY_FIELD_REFLECTION) \
       }; \
       return fieldPropertyReflections; \
