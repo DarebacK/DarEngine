@@ -19,8 +19,6 @@ DAR_ENUM_CLASS_BEGIN(PixelFormat, uint8)
   e(int16)
 DAR_ENUM_CLASS_END(PixelFormat)
 
-const char* toString(PixelFormat pixelFormat);
-PixelFormat toPixelFormat(const char* string);
 int8 toChannelCount(PixelFormat pixelFormat);
 int16 toPixelSizeInBits(PixelFormat pixelFormat);
 int16 toPixelSizeInBytes(PixelFormat pixelFormat);

@@ -15,15 +15,6 @@
 
 DAR_ENUM_IMPLEMENT(PixelFormat);
 
-const char* toString(PixelFormat pixelFormat)
-{
-  // TODO: implement for all cases, maybe using a list macro?
-  switch(pixelFormat)
-  {
-    case PixelFormat::int16: return "int16";
-    default: ensureNoEntry(); return "";
-  }
-}
 int8 toChannelCount(PixelFormat pixelFormat)
 {
   switch (pixelFormat)

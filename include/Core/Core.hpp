@@ -186,6 +186,7 @@ void* findToEnumFunction(const char* enumName);
 #define DAR_ENUM_VALUE(name, ...) name __VA_ARGS__,
 #define DAR_ENUM_INCREMENT(name, ...) + 1
 #define DAR_ENUM_FROM_STRING(name, ...) else if(strcmp(string, #name) == 0) return EnumType::name;
+#define DAR_ENUM_TO_STRING(name, ...) case EnumType::name: return #name;
 
 #define DAR_ENUM_CLASS_END(name) \
     DAR_ENUM_LIST(DAR_ENUM_VALUE) \
@@ -202,11 +203,28 @@ void* findToEnumFunction(const char* enumName);
       return static_cast<EnumType>(0); \
     } \
   } \
-  name to##name(const char* string);
+  name to##name(const char* string); \
+  template<typename EnumType> \
+  const char* internalToString##name(name value) \
+  { \
+    switch(value) \
+    { \
+      DAR_ENUM_LIST(DAR_ENUM_TO_STRING) \
+      \
+      default: \
+        ensureNoEntry(); \
+        return ""; \
+    } \
+  } \
+  const char* toString(name value);
 
 #define DAR_ENUM_IMPLEMENT(name) \
   name to##name(const char* string) \
   { \
     return internaltoEnum##name<name>(string); \
+  } \
+  const char* toString(name value) \
+  { \
+    return internalToString##name<name>(value); \
   } \
   static EnumRegisterer name##EnumRegisterer{#name, reinterpret_cast<void*>(&to##name)};
