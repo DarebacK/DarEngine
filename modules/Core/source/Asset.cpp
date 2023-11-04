@@ -480,9 +480,6 @@ static bool tryTraverseDirectory(wchar_t* wildcardPathBuffer, int64 wildcardPath
       memcpy(metaFilePathExtension, L"meta\0", sizeof(wchar_t) * 5);
       if (!ensure(fileExists(metaFilePath)))
       {
-        const int64 fileExtensionLength = static_cast<int64>(wcslen(fileExtension));
-        memcpy(metaFilePathExtension, fileExtension, fileExtensionLength);
-        metaFilePathExtension[fileExtensionLength] = L'0';
         swprintf(metaFilePathExtension, MAX_PATH - pathLength - fileNameLength, L"%s", fileExtension);
         logError("File %S doesn't have a corresponding meta file.", metaFilePath);
         continue;
@@ -494,14 +491,11 @@ static bool tryTraverseDirectory(wchar_t* wildcardPathBuffer, int64 wildcardPath
       // TODO: do custom non-intrusive parsing for the assetType to avoid doing this copy.
       std::vector<byte> assetMetaFileDataCopy = assetMetaFileData;
 
-      const int64 fileExtensionLength = static_cast<int64>(wcslen(fileExtension));
-      memcpy(metaFilePathExtension, fileExtension, fileExtensionLength);
-      metaFilePathExtension[fileExtensionLength] = L'0';
       swprintf(metaFilePathExtension, MAX_PATH - pathLength - fileNameLength, L"%s", fileExtension);
       
-      // TODO: this is messy, refactor!
-      wchar_t* assetPath = new wchar_t[wcslen(metaFilePath)];
-      swprintf(assetPath, MAX_PATH - wcslen(metaFilePath), L"%s", metaFilePath);
+      const int64 metaFilePathLength = wcslen(metaFilePath);
+      wchar_t* assetPath = new wchar_t[metaFilePathLength + 1];
+      swprintf(assetPath, metaFilePathLength + 1, L"%s", metaFilePath);
 
       parentDirectory->assetFileNames.emplace_back(findData->cFileName);
 
