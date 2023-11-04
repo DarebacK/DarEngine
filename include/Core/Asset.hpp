@@ -53,25 +53,24 @@ class Asset
 {
 protected:
 
-  Asset() = default;
+  Asset() {};
   Asset(const Asset& other) = delete;
   Asset(Asset&& other) = delete;
 
 public:
 
+  const wchar_t* path;
   Ref<TaskEvent> initializedTaskEvent = TaskEvent::create();
-
-  // Used to delete itself from the asset directory after ref count reaches zero.
-  // TODO: maybe we don't have to delete the assets? Just call destructor/constructor without deletion.
-  Asset** pointerInAssetDirectory = nullptr;
-  AssetType assetType = AssetType::Unknown;
+  void* initializationProperties; // TODO: we don't need this if we are going to keep it in memory anyway...
+  AssetType assetType;
+  union // Prevents initialization of refcount value
+  {
+    std::atomic<int32> refCount;
+  };
 
   void ref();
   void unref();  // Call destructor based on type if refCount reaches 0.
 
-private:
-
-  std::atomic<int32> refCount = 0;
 };
 Asset* internalFindAsset(AssetDirectory* directory, const wchar_t* path);
 
@@ -81,7 +80,7 @@ Asset* internalFindAsset(AssetDirectory* directory, const wchar_t* path);
     using AssetClassType = name;
 
 #define ASSET_META_PROPERTY_EMPTY(type, name, defaultValue)
-#define ASSET_META_PROPERTY_FIELD(type, name, defaultValue) type name = defaultValue;
+#define ASSET_META_PROPERTY_FIELD(type, name, defaultValue) type name;
 #define ASSET_META_PROPERTY_PLUS_ONE(type, name, defaultValue) + 1
 
 enum class AssetMetaPropertyType : uint8
@@ -103,12 +102,13 @@ struct AssetMetaPropertyReflection
 {
   const char* name = nullptr;
   const char* typeName = nullptr;
+  uint64 defaultValue = 0;
   uint8 size = 0;
   uint8 offset = 0;
   AssetMetaPropertyType type;
 };
-#define ASSET_META_PROPERTY_INITIALIZATION_REFLECTION(type, name, defaultValue) {#name, #type, sizeof(type), offsetof(InitializationProperties, name), ToAssetMetaPropertType<type>::result},
-#define ASSET_META_PROPERTY_FIELD_REFLECTION(type, name, defaultValue) {#name, #type, sizeof(type), offsetof(AssetClassType, name), ToAssetMetaPropertType<type>::result},
+#define ASSET_META_PROPERTY_INITIALIZATION_REFLECTION(type, name, defaultValue) {#name, #type, uint64(defaultValue), sizeof(type), offsetof(InitializationProperties, name), ToAssetMetaPropertType<type>::result},
+#define ASSET_META_PROPERTY_FIELD_REFLECTION(type, name, defaultValue) {#name, #type, uint64(defaultValue), sizeof(type), offsetof(AssetClassType, name), ToAssetMetaPropertType<type>::result},
 
 template<typename T, class = void>
 struct ToAssetMetaPropertType

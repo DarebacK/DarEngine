@@ -73,163 +73,36 @@ static wchar_t* getFileExtension(wchar_t* fileName)
   return const_cast<wchar_t*>(getFileExtension(const_cast<const wchar_t*>(fileName)));
 }
 
-void Asset::ref()
-{
-  refCount++;
-}
-
-void Asset::unref()
-{
-  if (--refCount == 0)
-  {
-    ensureTrue(isInMainThread());
-
-    *pointerInAssetDirectory = nullptr;
-
-    switch (assetType)
-    {
-    #define ASSET_TYPE_DELETE_CASE(name) case AssetType::name: {\
-      name* derivedPtr = reinterpret_cast<name*>(this); \
-      delete derivedPtr; \
-      break; }
-    
-      ASSET_TYPE_LIST(ASSET_TYPE_DELETE_CASE)
-    #undef ASSET_TYPE_DELETE_CASE
-
-      default:
-        ensureNoEntry();
-        break;
-    }
-  }
-}
-
-bool parseMetaProperty(const AssetMetaPropertyReflection* reflections, int64 reflectionCount, const ConfigKeyValueNode& node, void* destination)
-{
-  for(int64 fieldIndex = 0; fieldIndex < reflectionCount; ++fieldIndex)
-  {
-    {
-      // Meta field property auto initialization.
-      const AssetMetaPropertyReflection& reflection = reflections[fieldIndex];
-      if(isEqual(node.key, reflection.name))
-      {
-        switch(reflection.type)
-        {
-          #define REFLECTION_ASSIGN_INT_CASE(MetaPropertyType, ValueType) \
-            case AssetMetaPropertyType::MetaPropertyType: \
-            { \
-              ValueType value = (ValueType)node.toInt(); \
-              *(ValueType*)(((byte*)destination) + reflection.offset) = value; \
-              break; \
-            }
-          REFLECTION_ASSIGN_INT_CASE(Int8, int8)
-          REFLECTION_ASSIGN_INT_CASE(Int16, int16)
-          REFLECTION_ASSIGN_INT_CASE(Int32, int32)
-          REFLECTION_ASSIGN_INT_CASE(Int64, int64)
-          REFLECTION_ASSIGN_INT_CASE(Uint8, uint8)
-          REFLECTION_ASSIGN_INT_CASE(Uint16, uint16)
-          REFLECTION_ASSIGN_INT_CASE(Uint32, uint32)
-          REFLECTION_ASSIGN_INT_CASE(Uint64, uint64)
-          #undef REFLECTION_ASSIGN_INT_CASE
-
-          case AssetMetaPropertyType::UnsignedEnum:
-          {
-            void* toEnumFunctionPointer = findToEnumFunction(reflection.typeName);
-            switch(reflection.size)
-            {
-              #define REFLECTION_ASSIGN_UNSIGNED_ENUM_CASE(size, type) \
-                case size: \
-                { \
-                  using ToEnumFunctionPointer = type(*)(const char*); \
-                  ToEnumFunctionPointer toEnumFunction = (ToEnumFunctionPointer)toEnumFunctionPointer; \
-                  type value = toEnumFunction(node.value); \
-                  *(type*)(((byte*)destination) + reflection.offset) = value; \
-                  break; \
-                }
-              REFLECTION_ASSIGN_UNSIGNED_ENUM_CASE(1, uint8)
-              REFLECTION_ASSIGN_UNSIGNED_ENUM_CASE(2, uint16)
-              REFLECTION_ASSIGN_UNSIGNED_ENUM_CASE(4, uint32)
-              REFLECTION_ASSIGN_UNSIGNED_ENUM_CASE(8, uint64)
-              #undef REFLECTION_ASSIGN_UNSIGNED_ENUM_CASE
-
-              default:
-                ensureNoEntry();
-                break;
-            }
-            break;
-          }
-
-          case AssetMetaPropertyType::SignedEnum:
-          {
-            void* toEnumFunctionPointer = findToEnumFunction(reflection.typeName);
-            switch(reflection.size)
-            {
-              #define REFLECTION_ASSIGN_SIGNED_ENUM_CASE(size, type) \
-                case size: \
-                { \
-                  using ToEnumFunctionPointer = type(*)(const char*); \
-                  ToEnumFunctionPointer toEnumFunction = (ToEnumFunctionPointer)toEnumFunctionPointer; \
-                  type value = toEnumFunction(node.value); \
-                  *(type*)(((byte*)destination) + reflection.offset) = value; \
-                  break; \
-                }
-              REFLECTION_ASSIGN_SIGNED_ENUM_CASE(1, int8)
-              REFLECTION_ASSIGN_SIGNED_ENUM_CASE(2, int16)
-              REFLECTION_ASSIGN_SIGNED_ENUM_CASE(4, int32)
-              REFLECTION_ASSIGN_SIGNED_ENUM_CASE(8, int64)
-              #undef REFLECTION_ASSIGN_SIGNED_ENUM_CASE
-
-              default:
-                ensureNoEntry();
-                break;
-            }
-            break;
-          }
-
-          default:
-            ensureNoEntry();
-            break;
-        }
-
-        return true;
-      }
-    }
-  }
-
-  return false;
-}
-
 struct InitializeAssetTaskData
 {
-  AssetType assetType;
-  std::wstring assetPath;
+  // TODO: Get rid of passing the extension as AssetBase now contains the path.
   const wchar_t* assetFileExtension;
-  Asset** pointerInAssetDirectory; 
-  void* initializationProperties;
+  Asset* assetBase;
 };
 DEFINE_TASK_BEGIN(initializeAsset, InitializeAssetTaskData)
 {
   // Use memory mapped file to avoid unnecessary copy when passing the resulting to a buffer, 
   // e.g. during ID3D11Device::CreateTexture2D.
-  
-  HANDLE fileHandle; 
+
+  HANDLE fileHandle;
   HANDLE fileMapping;
-  void* fileView; 
+  void* fileView;
   int64 fileSize;
-  
+
   {
     TRACE_SCOPE("mapViewOfAssetFile");
 
-    fileHandle = CreateFile(taskData.assetPath.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
+    fileHandle = CreateFile(taskData.assetBase->path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
     if(!ensure(fileHandle))
     {
-      logError("Failed to load %S asset file", taskData.assetPath.c_str());
+      logError("Failed to load %S asset file", taskData.assetBase->path);
       return;
     }
 
     fileMapping = CreateFileMapping(fileHandle, NULL, PAGE_READONLY, 0, 0, NULL);
     if(!ensure(fileMapping))
     {
-      logError("Failed to create file mapping for %S asset file", taskData.assetPath.c_str());
+      logError("Failed to create file mapping for %S asset file", taskData.assetBase->path);
       CloseHandle(fileHandle);
       return;
     }
@@ -239,7 +112,7 @@ DEFINE_TASK_BEGIN(initializeAsset, InitializeAssetTaskData)
     {
       CloseHandle(fileMapping);
       CloseHandle(fileHandle);
-      logError("Failed to create map view for %S asset file", taskData.assetPath.c_str());
+      logError("Failed to create map view for %S asset file", taskData.assetBase->path);
       return;
     }
 
@@ -248,13 +121,13 @@ DEFINE_TASK_BEGIN(initializeAsset, InitializeAssetTaskData)
     fileSize = int64(uint64(fileSizeLow) | (uint64(fileSizeHigh) << 32));
   }
 
-  switch(taskData.assetType)
+  switch(taskData.assetBase->assetType)
   {
     #define ASSET_TYPE_INITIALIZE(name) \
           case AssetType::name: { \
             TRACE_SCOPE(#name "::initialize"); \
-            name* asset = reinterpret_cast<name*>(*taskData.pointerInAssetDirectory); \
-            name::InitializationProperties* typedInitializationProperties = (name::InitializationProperties*)taskData.initializationProperties; \
+            name* asset = reinterpret_cast<name*>(taskData.assetBase); \
+            name::InitializationProperties* typedInitializationProperties = (name::InitializationProperties*)asset->initializationProperties; \
             asset->initialize(*typedInitializationProperties, (const byte*)fileView, fileSize, taskData.assetFileExtension); \
             asset->initializedTaskEvent->complete(); \
             delete typedInitializationProperties; \
@@ -278,6 +151,239 @@ DEFINE_TASK_BEGIN(initializeAsset, InitializeAssetTaskData)
 }
 DEFINE_TASK_END
 
+void Asset::ref()
+{
+  if(++refCount == 1)
+  {
+    TRACE_SCOPE("constructAsset");
+
+    ensureTrue(isInMainThread());
+
+    switch(assetType)
+    {
+      #define ASSET_TYPE_CONSTRUCT_CASE(name) case AssetType::name: { \
+      name* derivedPtr = reinterpret_cast<name*>(this); \
+      new (derivedPtr) name; \
+      break; }
+
+      ASSET_TYPE_LIST(ASSET_TYPE_CONSTRUCT_CASE)
+      #undef ASSET_TYPE_CONSTRUCT_CASE
+
+      default:
+        ensureNoEntry();
+        break;
+    }
+
+    const wchar_t* assetFileExtension = getFileExtension(path);
+
+    InitializeAssetTaskData* initializeTaskData = new InitializeAssetTaskData();
+    initializeTaskData->assetFileExtension = assetFileExtension;
+    initializeTaskData->assetBase = this;
+    taskManager.schedule(initializeAsset, initializeTaskData, ThreadType::Worker);
+  }
+}
+
+void Asset::unref()
+{
+  if (--refCount == 0)
+  {
+    TRACE_SCOPE("destructAsset");
+
+    ensureTrue(isInMainThread());
+
+    switch (assetType)
+    {
+    #define ASSET_TYPE_DELETE_CASE(name) case AssetType::name: {\
+      name* derivedPtr = reinterpret_cast<name*>(this); \
+      derivedPtr->~name(); \
+      break; }
+    
+      ASSET_TYPE_LIST(ASSET_TYPE_DELETE_CASE)
+    #undef ASSET_TYPE_DELETE_CASE
+
+      default:
+        ensureNoEntry();
+        break;
+    }
+  }
+}
+
+bool parseMetaProperty(const AssetMetaPropertyReflection* reflections, int64 reflectionCount, const ConfigKeyValueNode& node, void* destination)
+{
+  TRACE_SCOPE();
+
+  for(int64 propertyIndex = 0; propertyIndex < reflectionCount; ++propertyIndex)
+  {
+    const AssetMetaPropertyReflection& reflection = reflections[propertyIndex];
+    if(isEqual(node.key, reflection.name))
+    {
+      switch(reflection.type)
+      {
+        #define REFLECTION_ASSIGN_INT_CASE(MetaPropertyType, ValueType) \
+          case AssetMetaPropertyType::MetaPropertyType: \
+          { \
+            ValueType value = (ValueType)node.toInt(); \
+            *(ValueType*)(((byte*)destination) + reflection.offset) = value; \
+            break; \
+          }
+        REFLECTION_ASSIGN_INT_CASE(Int8, int8)
+        REFLECTION_ASSIGN_INT_CASE(Int16, int16)
+        REFLECTION_ASSIGN_INT_CASE(Int32, int32)
+        REFLECTION_ASSIGN_INT_CASE(Int64, int64)
+        REFLECTION_ASSIGN_INT_CASE(Uint8, uint8)
+        REFLECTION_ASSIGN_INT_CASE(Uint16, uint16)
+        REFLECTION_ASSIGN_INT_CASE(Uint32, uint32)
+        REFLECTION_ASSIGN_INT_CASE(Uint64, uint64)
+        #undef REFLECTION_ASSIGN_INT_CASE
+
+        case AssetMetaPropertyType::UnsignedEnum:
+        {
+          void* toEnumFunctionPointer = findToEnumFunction(reflection.typeName);
+          switch(reflection.size)
+          {
+            #define REFLECTION_ASSIGN_UNSIGNED_ENUM_CASE(size, type) \
+              case size: \
+              { \
+                using ToEnumFunctionPointer = type(*)(const char*); \
+                ToEnumFunctionPointer toEnumFunction = (ToEnumFunctionPointer)toEnumFunctionPointer; \
+                type value = toEnumFunction(node.value); \
+                *(type*)(((byte*)destination) + reflection.offset) = value; \
+                break; \
+              }
+            REFLECTION_ASSIGN_UNSIGNED_ENUM_CASE(1, uint8)
+            REFLECTION_ASSIGN_UNSIGNED_ENUM_CASE(2, uint16)
+            REFLECTION_ASSIGN_UNSIGNED_ENUM_CASE(4, uint32)
+            REFLECTION_ASSIGN_UNSIGNED_ENUM_CASE(8, uint64)
+            #undef REFLECTION_ASSIGN_UNSIGNED_ENUM_CASE
+
+            default:
+              ensureNoEntry();
+              break;
+          }
+          break;
+        }
+
+        case AssetMetaPropertyType::SignedEnum:
+        {
+          void* toEnumFunctionPointer = findToEnumFunction(reflection.typeName);
+          switch(reflection.size)
+          {
+            #define REFLECTION_ASSIGN_SIGNED_ENUM_CASE(size, type) \
+              case size: \
+              { \
+                using ToEnumFunctionPointer = type(*)(const char*); \
+                ToEnumFunctionPointer toEnumFunction = (ToEnumFunctionPointer)toEnumFunctionPointer; \
+                type value = toEnumFunction(node.value); \
+                *(type*)(((byte*)destination) + reflection.offset) = value; \
+                break; \
+              }
+            REFLECTION_ASSIGN_SIGNED_ENUM_CASE(1, int8)
+            REFLECTION_ASSIGN_SIGNED_ENUM_CASE(2, int16)
+            REFLECTION_ASSIGN_SIGNED_ENUM_CASE(4, int32)
+            REFLECTION_ASSIGN_SIGNED_ENUM_CASE(8, int64)
+            #undef REFLECTION_ASSIGN_SIGNED_ENUM_CASE
+
+            default:
+              ensureNoEntry();
+              break;
+          }
+          break;
+        }
+
+        default:
+          ensureNoEntry();
+          break;
+      }
+
+      return true;
+    }
+  }
+
+  return false;
+}
+
+void defaultInitialiazeMetaProperties(const AssetMetaPropertyReflection* reflections, int64 reflectionCount, void* destination)
+{
+  TRACE_SCOPE();
+
+  for(int64 propertyIndex = 0; propertyIndex < reflectionCount; ++propertyIndex)
+  {
+    const AssetMetaPropertyReflection& reflection = reflections[propertyIndex];
+
+    switch(reflection.type)
+    {
+      #define REFLECTION_ASSIGN_INT_CASE(MetaPropertyType, ValueType) \
+        case AssetMetaPropertyType::MetaPropertyType: \
+        { \
+          ValueType value = (ValueType)reflection.defaultValue; \
+          *(ValueType*)(((byte*)destination) + reflection.offset) = value; \
+          break; \
+        }
+      REFLECTION_ASSIGN_INT_CASE(Int8, int8)
+      REFLECTION_ASSIGN_INT_CASE(Int16, int16)
+      REFLECTION_ASSIGN_INT_CASE(Int32, int32)
+      REFLECTION_ASSIGN_INT_CASE(Int64, int64)
+      REFLECTION_ASSIGN_INT_CASE(Uint8, uint8)
+      REFLECTION_ASSIGN_INT_CASE(Uint16, uint16)
+      REFLECTION_ASSIGN_INT_CASE(Uint32, uint32)
+      REFLECTION_ASSIGN_INT_CASE(Uint64, uint64)
+      #undef REFLECTION_ASSIGN_INT_CASE
+
+      case AssetMetaPropertyType::UnsignedEnum:
+      {
+        switch(reflection.size)
+        {
+          #define REFLECTION_ASSIGN_UNSIGNED_ENUM_CASE(size, type) \
+            case size: \
+            { \
+              type value = (type)reflection.defaultValue; \
+              *(type*)(((byte*)destination) + reflection.offset) = value; \
+              break; \
+            }
+          REFLECTION_ASSIGN_UNSIGNED_ENUM_CASE(1, uint8)
+          REFLECTION_ASSIGN_UNSIGNED_ENUM_CASE(2, uint16)
+          REFLECTION_ASSIGN_UNSIGNED_ENUM_CASE(4, uint32)
+          REFLECTION_ASSIGN_UNSIGNED_ENUM_CASE(8, uint64)
+          #undef REFLECTION_ASSIGN_UNSIGNED_ENUM_CASE
+
+          default:
+            ensureNoEntry();
+            break;
+        }
+        break;
+      }
+
+      case AssetMetaPropertyType::SignedEnum:
+      {
+        switch(reflection.size)
+        {
+          #define REFLECTION_ASSIGN_UNSIGNED_ENUM_CASE(size, type) \
+            case size: \
+            { \
+              type value = (type)reflection.defaultValue; \
+              *(type*)(((byte*)destination) + reflection.offset) = value; \
+              break; \
+            }
+          REFLECTION_ASSIGN_UNSIGNED_ENUM_CASE(1, int8)
+          REFLECTION_ASSIGN_UNSIGNED_ENUM_CASE(2, int16)
+          REFLECTION_ASSIGN_UNSIGNED_ENUM_CASE(4, int32)
+          REFLECTION_ASSIGN_UNSIGNED_ENUM_CASE(8, int64)
+          #undef REFLECTION_ASSIGN_UNSIGNED_ENUM_CASE
+
+          default:
+            ensureNoEntry();
+            break;
+        }
+        break;
+      }
+
+      default:
+        ensureNoEntry();
+        break;
+    }
+  }
+}
+
 class AssetDirectory
 {
 public:
@@ -297,98 +403,7 @@ public:
     for (int32 assetIndex = 0; assetIndex < assets.size(); assetIndex++)
     {
       Asset* asset = assets[assetIndex];
-      if (asset)
-      {
-        asset->ref();
-        continue;
-      }
-
-      wchar_t assetPath[MAX_PATH];
-      const wchar_t* assetFileName = assetFileNames[assetIndex].c_str();
-      swprintf(assetPath, arrayLength(assetPath), L"%s\\%s", path.c_str(), assetFileName);
-      wchar_t* fileExtension = getFileExtension(assetPath);
-      memcpy(fileExtension, L"meta\0", sizeof(wchar_t) * 5);
-      std::vector<byte> assetMetaFileData;
-      ensure(tryReadEntireFile(assetPath, assetMetaFileData));
-      // Used for second parse as the parse changes the data.
-      // TODO: do custom non-intrusive parsing for the assetType to avoid doing this copy.
-      std::vector<byte> assetMetaFileDataCopy = assetMetaFileData;
-
-      AssetType assetType = AssetType::Unknown;
-      char* assetMetaData = reinterpret_cast<char*>(assetMetaFileData.data());
-      if (!ensure(tryParseConfig(assetMetaData, assetMetaFileData.size(), [&assetType](const ConfigKeyValueNode& node) {
-          if (node.isKey("assetType"))
-          {
-            assetType = assetTypeStringToEnum(node.value);
-            return true;
-          }
-
-          return false;
-        })))
-      {
-        continue;
-      }
-      if (!ensure(assetType != AssetType::Unknown))
-      {
-        continue;
-      }
-
-      Asset** pointerInAssetDirectory = &assets[assetIndex];
-      const AssetMetaPropertyReflection* metaFieldPropertyReflections;
-      int64 metaFieldPropertyReflectionCount;
-      const AssetMetaPropertyReflection* initializationPropertyReflections;
-      int64 initializationPropertyReflectionCount;
-      void* initializationProperties;
-      switch(assetType)
-      {
-        #define ASSET_TYPE_CONSTRUCT(name) \
-          case AssetType::name: { \
-            name* asset = new name(); \
-            *pointerInAssetDirectory = asset; \
-            asset->pointerInAssetDirectory = pointerInAssetDirectory; \
-            asset->assetType = assetType; \
-            asset->ref(); \
-            metaFieldPropertyReflections = name::getMetaFieldPropertyReflections(); \
-            metaFieldPropertyReflectionCount = name::metaFieldPropertyCount; \
-            initializationPropertyReflections = name::getInitializationPropertyReflections(); \
-            initializationPropertyReflectionCount = name::initializationFieldPropertyCount; \
-            initializationProperties = new name::InitializationProperties(); \
-            break; \
-          }
-
-        ASSET_TYPE_LIST(ASSET_TYPE_CONSTRUCT)
-          #undef ASSET_TYPE_CONSTRUCT
-
-        default:
-          ensureNoEntry();
-          return;
-      }
-      Asset* assetBase = *pointerInAssetDirectory;
-
-      tryParseConfig((char*)assetMetaFileDataCopy.data(), (int64)assetMetaFileDataCopy.size(), [=](const ConfigKeyValueNode& node) {
-        if(parseMetaProperty(metaFieldPropertyReflections, metaFieldPropertyReflectionCount, node, assetBase))
-        {
-          return false;
-        }
-        if(parseMetaProperty(initializationPropertyReflections, initializationPropertyReflectionCount, node, initializationProperties))
-        {
-          return false;
-        }
-
-        return false;
-      });
-
-      const wchar_t* assetFileExtension = getFileExtension(assetFileName);
-      memcpy(fileExtension, L"%s\0", wcslen(assetFileExtension) * 5);
-      swprintf(assetPath, arrayLength(assetPath), L"%s\\%s", path.c_str(), assetFileName);
-
-      InitializeAssetTaskData* initializeTaskData = new InitializeAssetTaskData();
-      initializeTaskData->assetType = assetType;
-      initializeTaskData->assetPath = assetPath;
-      initializeTaskData->assetFileExtension = assetFileExtension;
-      initializeTaskData->pointerInAssetDirectory = pointerInAssetDirectory;
-      initializeTaskData->initializationProperties = initializationProperties;
-      taskManager.schedule(initializeAsset, initializeTaskData, ThreadType::Worker);
+      asset->ref();
     }
 
     for (AssetDirectory& directory : directories)
@@ -475,13 +490,94 @@ static bool tryTraverseDirectory(wchar_t* wildcardPathBuffer, int64 wildcardPath
         continue;
       }
 
+      std::vector<byte> assetMetaFileData;
+      ensure(tryReadEntireFile(metaFilePath, assetMetaFileData));
+      // Used for second parse as the parse changes the data.
+      // TODO: do custom non-intrusive parsing for the assetType to avoid doing this copy.
+      std::vector<byte> assetMetaFileDataCopy = assetMetaFileData;
+
+      const int64 fileExtensionLength = static_cast<int64>(wcslen(fileExtension));
+      memcpy(metaFilePathExtension, fileExtension, fileExtensionLength);
+      metaFilePathExtension[fileExtensionLength] = L'0';
+      swprintf(metaFilePathExtension, MAX_PATH - pathLength - fileNameLength, L"%s", fileExtension);
+      
+      // TODO: this is messy, refactor!
+      wchar_t* assetPath = new wchar_t[wcslen(metaFilePath)];
+      swprintf(assetPath, MAX_PATH - wcslen(metaFilePath), L"%s", metaFilePath);
+
       parentDirectory->assetFileNames.emplace_back(findData->cFileName);
+
+      AssetType assetType = AssetType::Unknown;
+      char* assetMetaData = reinterpret_cast<char*>(assetMetaFileData.data());
+      if(!ensure(tryParseConfig(assetMetaData, assetMetaFileData.size(), [&assetType](const ConfigKeyValueNode& node) {
+        if(node.isKey("assetType"))
+        {
+          assetType = assetTypeStringToEnum(node.value);
+          return true;
+        }
+
+        return false;
+        })))
+      {
+        continue;
+      }
+      if(!ensure(assetType != AssetType::Unknown))
+      {
+        continue;
+      }
+
+      Asset* assetBase;
+      const AssetMetaPropertyReflection* metaFieldPropertyReflections;
+      int64 metaFieldPropertyReflectionCount;
+      const AssetMetaPropertyReflection* initializationPropertyReflections;
+      int64 initializationPropertyReflectionCount;
+      void* initializationProperties;
+      switch(assetType)
+      {
+        #define ASSET_TYPE_CONSTRUCT(name) \
+          case AssetType::name: { \
+            name* asset = (name*) malloc(sizeof(name)); \
+            parentDirectory->assets.emplace_back(asset); \
+            assetBase = asset; \
+            assetBase->path = assetPath; \
+            assetBase->assetType = assetType; \
+            assetBase->refCount = 0; \
+            metaFieldPropertyReflections = name::getMetaFieldPropertyReflections(); \
+            metaFieldPropertyReflectionCount = name::metaFieldPropertyCount; \
+            initializationPropertyReflections = name::getInitializationPropertyReflections(); \
+            initializationPropertyReflectionCount = name::initializationFieldPropertyCount; \
+            initializationProperties = new name::InitializationProperties(); \
+            asset->initializationProperties = initializationProperties; \
+            break; \
+          }
+
+        ASSET_TYPE_LIST(ASSET_TYPE_CONSTRUCT)
+        #undef ASSET_TYPE_CONSTRUCT
+
+        default:
+          ensureNoEntry();
+          continue;
+      }
+
+      defaultInitialiazeMetaProperties(metaFieldPropertyReflections, metaFieldPropertyReflectionCount, assetBase);
+      defaultInitialiazeMetaProperties(initializationPropertyReflections, initializationPropertyReflectionCount, initializationProperties);
+
+      tryParseConfig((char*)assetMetaFileDataCopy.data(), (int64)assetMetaFileDataCopy.size(), [=](const ConfigKeyValueNode& node) {
+        if(parseMetaProperty(metaFieldPropertyReflections, metaFieldPropertyReflectionCount, node, assetBase))
+        {
+          return false;
+        }
+        if(parseMetaProperty(initializationPropertyReflections, initializationPropertyReflectionCount, node, initializationProperties))
+        {
+          return false;
+        }
+
+        return false;
+      });
     }
   }
 
   FindClose(findHandle);
-
-  parentDirectory->assets.resize(parentDirectory->assetFileNames.size(), nullptr);
 
   return true;
 }
