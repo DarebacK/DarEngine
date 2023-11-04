@@ -143,7 +143,7 @@ DEFINE_ToAssetMetaPropertyType(float, Float)
     { \
       ASSET_META_PROPERTY_LIST(ASSET_META_PROPERTY_FIELD, ASSET_META_PROPERTY_EMPTY) \
     }; \
-    void initialize(const InitializationProperties& properties, byte* fileData, int64 fileDataLength, const wchar_t* fileNameExtension); \
+    void initialize(const InitializationProperties& properties, const byte* fileData, int64 fileDataLength, const wchar_t* fileNameExtension); \
     \
     static constexpr int64 metaFieldPropertyCount = 0 ASSET_META_PROPERTY_LIST(ASSET_META_PROPERTY_EMPTY, ASSET_META_PROPERTY_PLUS_ONE) ; \
     static const AssetMetaPropertyReflection* getMetaFieldPropertyReflections() { \

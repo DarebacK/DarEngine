@@ -198,6 +198,86 @@ bool parseMetaProperty(const AssetMetaPropertyReflection* reflections, int64 ref
   return false;
 }
 
+struct InitializeAssetTaskData
+{
+  AssetType assetType;
+  std::wstring assetPath;
+  const wchar_t* assetFileExtension;
+  Asset** pointerInAssetDirectory; 
+  void* initializationProperties;
+};
+DEFINE_TASK_BEGIN(initializeAsset, InitializeAssetTaskData)
+{
+  // Use memory mapped file to avoid unnecessary copy when passing the resulting to a buffer, 
+  // e.g. during ID3D11Device::CreateTexture2D.
+  
+  HANDLE fileHandle; 
+  HANDLE fileMapping;
+  void* fileView; 
+  int64 fileSize;
+  
+  {
+    TRACE_SCOPE("mapViewOfAssetFile");
+
+    fileHandle = CreateFile(taskData.assetPath.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
+    if(!ensure(fileHandle))
+    {
+      logError("Failed to load %S asset file", taskData.assetPath.c_str());
+      return;
+    }
+
+    fileMapping = CreateFileMapping(fileHandle, NULL, PAGE_READONLY, 0, 0, NULL);
+    if(!ensure(fileMapping))
+    {
+      logError("Failed to create file mapping for %S asset file", taskData.assetPath.c_str());
+      CloseHandle(fileHandle);
+      return;
+    }
+
+    fileView = MapViewOfFile(fileMapping, FILE_MAP_READ, 0, 0, 0);
+    if(!ensure(fileView))
+    {
+      CloseHandle(fileMapping);
+      CloseHandle(fileHandle);
+      logError("Failed to create map view for %S asset file", taskData.assetPath.c_str());
+      return;
+    }
+
+    DWORD fileSizeHigh;
+    DWORD fileSizeLow = GetFileSize(fileHandle, &fileSizeHigh);
+    fileSize = int64(uint64(fileSizeLow) | (uint64(fileSizeHigh) << 32));
+  }
+
+  switch(taskData.assetType)
+  {
+    #define ASSET_TYPE_INITIALIZE(name) \
+          case AssetType::name: { \
+            TRACE_SCOPE(#name "::initialize"); \
+            name* asset = reinterpret_cast<name*>(*taskData.pointerInAssetDirectory); \
+            name::InitializationProperties* typedInitializationProperties = (name::InitializationProperties*)taskData.initializationProperties; \
+            asset->initialize(*typedInitializationProperties, (const byte*)fileView, fileSize, taskData.assetFileExtension); \
+            asset->initializedTaskEvent->complete(); \
+            delete typedInitializationProperties; \
+              break; \
+          }
+
+    ASSET_TYPE_LIST(ASSET_TYPE_INITIALIZE)
+      #undef ASSET_TYPE_INITIALIZE
+
+    default:
+      ensureNoEntry();
+      break;
+  }
+
+  TRACE_SCOPE("unmapViewOfAssetFile");
+  // This can take couple of milliseconds. 
+  // initializedTaskEvent was set to complete so it's no problem we do it as part of this task.
+  UnmapViewOfFile(fileView);
+  CloseHandle(fileMapping);
+  CloseHandle(fileHandle);
+}
+DEFINE_TASK_END
+
 class AssetDirectory
 {
 public:
@@ -302,33 +382,13 @@ public:
       memcpy(fileExtension, L"%s\0", wcslen(assetFileExtension) * 5);
       swprintf(assetPath, arrayLength(assetPath), L"%s\\%s", path.c_str(), assetFileName);
 
-      // TODO: use file memory mapping for textures to avoid the unnecessary intermediate buffer.
-
-      readFileAsync(std::wstring(assetPath), ThreadType::Worker, 
-        [assetType, assetFileExtension, pointerInAssetDirectory, initializationProperties](ReadFileAsync& context) {
-        ensureTrue(context.status == ReadFileAsync::Status::Success);
-
-        switch(assetType)
-        {
-          #define ASSET_TYPE_INITIALIZE(name) \
-          case AssetType::name: { \
-            TRACE_SCOPE(#name "::initialize"); \
-            name* asset = reinterpret_cast<name*>(*pointerInAssetDirectory); \
-            name::InitializationProperties* typedInitializationProperties = (name::InitializationProperties*)initializationProperties; \
-            asset->initialize(*typedInitializationProperties, context.buffer.data, context.buffer.size, assetFileExtension); \
-            asset->initializedTaskEvent->complete(); \
-            delete typedInitializationProperties; \
-              break; \
-          }
-
-          ASSET_TYPE_LIST(ASSET_TYPE_INITIALIZE)
-            #undef ASSET_TYPE_INITIALIZE
-
-          default:
-            ensureNoEntry();
-            return;
-        }
-      });
+      InitializeAssetTaskData* initializeTaskData = new InitializeAssetTaskData();
+      initializeTaskData->assetType = assetType;
+      initializeTaskData->assetPath = assetPath;
+      initializeTaskData->assetFileExtension = assetFileExtension;
+      initializeTaskData->pointerInAssetDirectory = pointerInAssetDirectory;
+      initializeTaskData->initializationProperties = initializationProperties;
+      taskManager.schedule(initializeAsset, initializeTaskData, ThreadType::Worker);
     }
 
     for (AssetDirectory& directory : directories)
@@ -552,9 +612,11 @@ Asset* internalFindAsset(AssetDirectory* directory, const wchar_t* path)
   return nullptr;
 }
 
-void Config::initialize(const InitializationProperties& properties, byte* fileData, int64 fileDataLength, const wchar_t* fileNameExtension)
+void Config::initialize(const InitializationProperties& properties, const byte* fileData, int64 fileDataLength, const wchar_t* fileNameExtension)
 {
-  tryParseConfig(reinterpret_cast<char*>(fileData), fileDataLength, [this](const ConfigKeyValueNode& node) -> bool {
+  std::vector<char> fileDataCopy;
+  fileDataCopy.insert(fileDataCopy.begin(), fileData, fileData + fileDataLength);
+  tryParseConfig(fileDataCopy.data(), fileDataLength, [this](const ConfigKeyValueNode& node) -> bool {
     std::string value{node.value, static_cast<uint64>(node.valueLength)};
     std::transform(value.begin(), value.end(), value.begin(), std::tolower);
     keysToValues.emplace(std::string(node.key, node.keyLength), std::move(value));
@@ -643,7 +705,7 @@ DXGI_FORMAT toDxgiFormat(PixelFormat pixelFormat)
   }
 }
 
-void Texture2D::initialize(const InitializationProperties& properties, byte* fileData, int64 fileDataLength, const wchar_t* fileNameExtension)
+void Texture2D::initialize(const InitializationProperties& properties, const byte* fileData, int64 fileDataLength, const wchar_t* fileNameExtension)
 {
   // TODO: Maybe don't use dds files anymore as we have the meta file? We could get rid of passing fileNameExtension then.
 
