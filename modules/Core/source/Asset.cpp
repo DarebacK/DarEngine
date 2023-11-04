@@ -223,8 +223,6 @@ public:
         continue;
       }
 
-      // TODO: asynchronize the loading and initialization
-
       wchar_t assetPath[MAX_PATH];
       const wchar_t* assetFileName = assetFileNames[assetIndex].c_str();
       swprintf(assetPath, arrayLength(assetPath), L"%s\\%s", path.c_str(), assetFileName);
@@ -306,7 +304,6 @@ public:
 
       // TODO: use file memory mapping for textures to avoid the unnecessary intermediate buffer.
 
-      // TODO: get rid of manually parsing metadata in initialize. Rather use macros with offsetof to automatically populate a struct with metadata passed to the initialize function.
       readFileAsync(std::wstring(assetPath), ThreadType::Worker, 
         [assetType, assetFileExtension, pointerInAssetDirectory, initializationProperties](ReadFileAsync& context) {
         ensureTrue(context.status == ReadFileAsync::Status::Success);
@@ -514,8 +511,6 @@ void AssetDirectoryRef::initialize(const wchar_t* path)
   {
     directory->loadAssetsIncludingSubdirectories();
   }
-  // TODO: Traverse the subtree, increase ref count and add each assets loaded task event to an array, 
-  // which will be a prerequisite to a task that sets the returned task event ref to completed.
 }
 
 Asset* internalFindAsset(AssetDirectory* directory, const wchar_t* path)

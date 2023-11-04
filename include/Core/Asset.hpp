@@ -10,17 +10,6 @@
 #include "Core/Image.hpp"
 #include "Core/D3D11.hpp"
 
-// TODO: create an AssetRegistry, that knows about all assets in the asset folder.
-// The registry will be filled during game start. 
-// The registry data structure will be static for the lifetime of the process, so no need to guard it against concurrent access,
-// although its content (the individual asset classes) may be accessed concurrently (TODO: do we really need this?).
-// The data structure will be organized into a tree, where a file directory is a node.
-// The user code can then request to load all assets from the subtree. He will then hold an AssetDirectory reference,
-// which will make all the underlying assets reference count increase by 1 to keep them loaded.
-// For example in case there are 3 subtrees and two of them want to share an asset, one can contain a system shortcut to the other.
-// Individual assets/resources (Texture2D, Config) will be initialized based on a meta file that will be present next to the loaded asset file.
-// That meta file is separate from the asset file to allow VCS diffs. The meta file will be an INI file
-
 bool tryInitializeAssetSystem();
 
 class AssetDirectory;
@@ -109,9 +98,6 @@ enum class AssetMetaPropertyType : uint8
   Float,
   SignedEnum,
   UnsignedEnum
-  // TODO: for string to enum conversions we will probably have to create a global map like map<EnumTypeString, map<EnumValueString, Value>>;
-  //       we can use std::is_unsigned<std::underlying_type_t<AssetMetaPropertyType>> to check whether the enum is signed/unsigned.
-  //       or just we will have to pass it as a string initializeProperty and then parse it in initialize.
 };
 struct AssetMetaPropertyReflection
 {
