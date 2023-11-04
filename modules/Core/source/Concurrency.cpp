@@ -2,8 +2,4 @@
 
 #include "Core/Concurrency.hpp"
 
-uint32 mainThreadId = 0;
-bool isInMainThread()
-{
-  return GetCurrentThreadId() == mainThreadId;
-}
+thread_local ThreadType threadType = ThreadType::Unknown;

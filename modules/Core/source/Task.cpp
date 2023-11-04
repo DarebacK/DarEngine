@@ -118,7 +118,7 @@ void TaskManager::initialize()
     return;
   }
 
-  mainThreadId = GetCurrentThreadId();
+  threadType = ThreadType::Main;
 
   SYSTEM_INFO systemInfo;
   GetSystemInfo(&systemInfo);
@@ -412,7 +412,7 @@ void TaskManager::processMainTasks()
 {
   TRACE_SCOPE();
 
-  ThreadContext context;
+  TaskThreadContext context;
   context.index = 0;
 
   Task task;
@@ -427,7 +427,9 @@ void TaskManager::processMainTasks()
 }
 DWORD TaskManager::workerThreadMain(LPVOID parameter)
 {
-  ThreadContext& threadContext = *static_cast<ThreadContext*>(parameter);
+  threadType = ThreadType::Worker;
+
+  TaskThreadContext& threadContext = *static_cast<TaskThreadContext*>(parameter);
 
   {
     char threadName[64];
@@ -456,7 +458,7 @@ bool TaskManager::isInitialized() const
 {
   return workerQueue.semaphore != nullptr;
 }
-void TaskManager::processAllTasks(const ThreadContext& threadContext)
+void TaskManager::processAllTasks(const TaskThreadContext& threadContext)
 {
   while (true)
   {

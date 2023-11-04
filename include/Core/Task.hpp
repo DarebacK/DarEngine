@@ -12,7 +12,12 @@
  * across threads to achieve parallelism and therefore better performance.
  */ 
 
-using TaskFunction = void (*)(void* taskParameter, const ThreadContext& threadContext);
+struct TaskThreadContext
+{
+  int64 index = 0; // Used in case of multiple thread per type, for example taskworker threads. Otherwise 0. Also used in parallel for, where the calling thread is 0.
+};
+
+using TaskFunction = void (*)(void* taskParameter, const TaskThreadContext& threadContext);
 
 /**
  * Usually represents task completion event.
@@ -148,7 +153,7 @@ private:
   static constexpr uint8 invalidTaskIndex = 255;
 
   std::vector<void*> threads;
-  std::vector<ThreadContext> threadContexts;
+  std::vector<TaskThreadContext> threadContexts;
 
   void* parallelForFinishedEvent;
 
@@ -160,7 +165,7 @@ private:
 
   bool isInitialized() const;
 
-  void processAllTasks(const ThreadContext& threadContext);
+  void processAllTasks(const TaskThreadContext& threadContext);
 };
 
 extern TaskManager taskManager;
@@ -176,7 +181,7 @@ public:
 };
 
 #define DEFINE_TASK_BEGIN(taskName, TaskDataType) \
-  void taskName (void* taskParameter, const ThreadContext& threadContext) \
+  void taskName (void* taskParameter, const TaskThreadContext& threadContext) \
     { \
       TRACE_SCOPE(); \
       TaskDataType& taskData = *static_cast<TaskDataType*>(taskParameter); \

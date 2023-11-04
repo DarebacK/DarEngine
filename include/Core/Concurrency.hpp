@@ -4,9 +4,6 @@
 
 #include "Core/Core.hpp"
 
-extern uint32 mainThreadId;
-bool isInMainThread();
-
 enum class ThreadType : int8
 {
   Unknown = 0,
@@ -14,10 +11,8 @@ enum class ThreadType : int8
   Worker = 2
 };
 
-struct ThreadContext
-{
-  int64 index = 0; // Used in case of multiple thread per type, for example taskworker threads. Otherwise 0. Also used in parallel for, where the calling thread is 0.
-};
+extern thread_local ThreadType threadType;
+inline bool isInMainThread() { return threadType == ThreadType::Main; }
 
 // Multiple producers, single consumer queue with fixed size.
 template<typename ItemType, uint64 queueSize>
