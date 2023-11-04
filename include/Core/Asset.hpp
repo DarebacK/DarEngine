@@ -61,7 +61,6 @@ public:
 
   const wchar_t* path;
   Ref<TaskEvent> initializedTaskEvent = TaskEvent::create();
-  void* initializationProperties; // TODO: we don't need this if we are going to keep it in memory anyway...
   AssetType assetType;
   union // Prevents initialization of refcount value
   {
@@ -137,29 +136,18 @@ DEFINE_ToAssetMetaPropertyType(uint32, Uint32)
 DEFINE_ToAssetMetaPropertyType(uint64, Uint64)
 DEFINE_ToAssetMetaPropertyType(float, Float)
 
-#define ASSET_CLASS_END(name) ASSET_META_PROPERTY_LIST(ASSET_META_PROPERTY_EMPTY, ASSET_META_PROPERTY_FIELD) \
+#define ASSET_CLASS_END(name) ASSET_META_PROPERTY_LIST(ASSET_META_PROPERTY_FIELD) \
   public: \
-    struct InitializationProperties \
-    { \
-      ASSET_META_PROPERTY_LIST(ASSET_META_PROPERTY_FIELD, ASSET_META_PROPERTY_EMPTY) \
-    }; \
-    void initialize(const InitializationProperties& properties, const byte* fileData, int64 fileDataLength, const wchar_t* fileNameExtension); \
+    void initialize(const byte* fileData, int64 fileDataLength, const wchar_t* fileNameExtension); \
     \
-    static constexpr int64 metaFieldPropertyCount = 0 ASSET_META_PROPERTY_LIST(ASSET_META_PROPERTY_EMPTY, ASSET_META_PROPERTY_PLUS_ONE) ; \
-    static const AssetMetaPropertyReflection* getMetaFieldPropertyReflections() { \
-      static const AssetMetaPropertyReflection fieldPropertyReflections[metaFieldPropertyCount + 1] = { \
-        ASSET_META_PROPERTY_LIST(ASSET_META_PROPERTY_EMPTY, ASSET_META_PROPERTY_FIELD_REFLECTION) \
+    static constexpr int64 metaPropertyCount = 0 ASSET_META_PROPERTY_LIST(ASSET_META_PROPERTY_PLUS_ONE) ; \
+    static const AssetMetaPropertyReflection* getMetaPropertyReflections() { \
+      static const AssetMetaPropertyReflection PropertyReflections[metaPropertyCount + 1] = { \
+        ASSET_META_PROPERTY_LIST(ASSET_META_PROPERTY_FIELD_REFLECTION) \
       }; \
-      return fieldPropertyReflections; \
+      return PropertyReflections; \
     } \
     \
-    static constexpr int64 initializationFieldPropertyCount = 0 ASSET_META_PROPERTY_LIST(ASSET_META_PROPERTY_PLUS_ONE, ASSET_META_PROPERTY_EMPTY) ; \
-    static const AssetMetaPropertyReflection* getInitializationPropertyReflections() { \
-      static const AssetMetaPropertyReflection initializationPropertyReflections[initializationFieldPropertyCount + 1] = { \
-        ASSET_META_PROPERTY_LIST(ASSET_META_PROPERTY_INITIALIZATION_REFLECTION, ASSET_META_PROPERTY_EMPTY) \
-      }; \
-      return initializationPropertyReflections; \
-    } \
   };
 
 ASSET_CLASS_BEGIN(Config)
@@ -175,7 +163,7 @@ private:
 
   std::unordered_map<std::string, std::string> keysToValues;
 
-  #define ASSET_META_PROPERTY_LIST(initializationProperty, fieldProperty)
+  #define ASSET_META_PROPERTY_LIST(Property)
 ASSET_CLASS_END(Config)
 
 ASSET_CLASS_BEGIN(Texture2D)
@@ -193,11 +181,11 @@ public:
   };
   CpuAccess cpuAccess = CpuAccess::None;
 
-  #define ASSET_META_PROPERTY_LIST(initializationProperty, fieldProperty) \
-  fieldProperty(int32, width, 0) \
-  fieldProperty(int32, height, 0) \
-  initializationProperty(int8, mipLevelCount, 1) \
-  initializationProperty(PixelFormat, pixelFormat, PixelFormat::Invalid)
+  #define ASSET_META_PROPERTY_LIST(Property) \
+  Property(int32, width, 0) \
+  Property(int32, height, 0) \
+  Property(int8, mipLevelCount, 1) \
+  Property(PixelFormat, pixelFormat, PixelFormat::Invalid)
 ASSET_CLASS_END(Texture2D)
 
 #define FIND_ASSET_INSTANTIATION(name) \

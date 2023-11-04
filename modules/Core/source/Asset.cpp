@@ -127,10 +127,8 @@ DEFINE_TASK_BEGIN(initializeAsset, InitializeAssetTaskData)
           case AssetType::name: { \
             TRACE_SCOPE(#name "::initialize"); \
             name* asset = reinterpret_cast<name*>(taskData.assetBase); \
-            name::InitializationProperties* typedInitializationProperties = (name::InitializationProperties*)asset->initializationProperties; \
-            asset->initialize(*typedInitializationProperties, (const byte*)fileView, fileSize, taskData.assetFileExtension); \
+            asset->initialize((const byte*)fileView, fileSize, taskData.assetFileExtension); \
             asset->initializedTaskEvent->complete(); \
-            delete typedInitializationProperties; \
               break; \
           }
 
@@ -527,11 +525,8 @@ static bool tryTraverseDirectory(wchar_t* wildcardPathBuffer, int64 wildcardPath
       }
 
       Asset* assetBase;
-      const AssetMetaPropertyReflection* metaFieldPropertyReflections;
-      int64 metaFieldPropertyReflectionCount;
-      const AssetMetaPropertyReflection* initializationPropertyReflections;
-      int64 initializationPropertyReflectionCount;
-      void* initializationProperties;
+      const AssetMetaPropertyReflection* metaPropertyReflections;
+      int64 metaPropertyReflectionCount;
       switch(assetType)
       {
         #define ASSET_TYPE_CONSTRUCT(name) \
@@ -542,12 +537,8 @@ static bool tryTraverseDirectory(wchar_t* wildcardPathBuffer, int64 wildcardPath
             assetBase->path = assetPath; \
             assetBase->assetType = assetType; \
             assetBase->refCount = 0; \
-            metaFieldPropertyReflections = name::getMetaFieldPropertyReflections(); \
-            metaFieldPropertyReflectionCount = name::metaFieldPropertyCount; \
-            initializationPropertyReflections = name::getInitializationPropertyReflections(); \
-            initializationPropertyReflectionCount = name::initializationFieldPropertyCount; \
-            initializationProperties = new name::InitializationProperties(); \
-            asset->initializationProperties = initializationProperties; \
+            metaPropertyReflections = name::getMetaPropertyReflections(); \
+            metaPropertyReflectionCount = name::metaPropertyCount; \
             break; \
           }
 
@@ -559,15 +550,10 @@ static bool tryTraverseDirectory(wchar_t* wildcardPathBuffer, int64 wildcardPath
           continue;
       }
 
-      defaultInitialiazeMetaProperties(metaFieldPropertyReflections, metaFieldPropertyReflectionCount, assetBase);
-      defaultInitialiazeMetaProperties(initializationPropertyReflections, initializationPropertyReflectionCount, initializationProperties);
+      defaultInitialiazeMetaProperties(metaPropertyReflections, metaPropertyReflectionCount, assetBase);
 
       tryParseConfig((char*)assetMetaFileDataCopy.data(), (int64)assetMetaFileDataCopy.size(), [=](const ConfigKeyValueNode& node) {
-        if(parseMetaProperty(metaFieldPropertyReflections, metaFieldPropertyReflectionCount, node, assetBase))
-        {
-          return false;
-        }
-        if(parseMetaProperty(initializationPropertyReflections, initializationPropertyReflectionCount, node, initializationProperties))
+        if(parseMetaProperty(metaPropertyReflections, metaPropertyReflectionCount, node, assetBase))
         {
           return false;
         }
@@ -708,7 +694,7 @@ Asset* internalFindAsset(AssetDirectory* directory, const wchar_t* path)
   return nullptr;
 }
 
-void Config::initialize(const InitializationProperties& properties, const byte* fileData, int64 fileDataLength, const wchar_t* fileNameExtension)
+void Config::initialize(const byte* fileData, int64 fileDataLength, const wchar_t* fileNameExtension)
 {
   std::vector<char> fileDataCopy;
   fileDataCopy.insert(fileDataCopy.begin(), fileData, fileData + fileDataLength);
@@ -801,12 +787,9 @@ DXGI_FORMAT toDxgiFormat(PixelFormat pixelFormat)
   }
 }
 
-void Texture2D::initialize(const InitializationProperties& properties, const byte* fileData, int64 fileDataLength, const wchar_t* fileNameExtension)
+void Texture2D::initialize(const byte* fileData, int64 fileDataLength, const wchar_t* fileNameExtension)
 {
   // TODO: Maybe don't use dds files anymore as we have the meta file? We could get rid of passing fileNameExtension then.
-
-  int8 mipLevelCount = properties.mipLevelCount;
-  PixelFormat pixelFormat = properties.pixelFormat;
 
   if(isEqual(fileNameExtension, L"dds"))
   {
