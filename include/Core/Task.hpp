@@ -30,6 +30,7 @@ public:
   static Ref<TaskEvent> create();
 
   void complete() { return subsequents.complete(); }
+  bool isComplete() const { return subsequents.isComplete; }
 
 private:
 
@@ -63,8 +64,6 @@ private:
     bool tryAdd(const Ref<TaskEvent>& taskEvent) { return tryAdd(Ref<TaskEvent>(taskEvent)); }
 
     void complete();
-
-  private:
 
     struct Node
     {
