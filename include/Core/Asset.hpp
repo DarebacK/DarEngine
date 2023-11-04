@@ -130,9 +130,9 @@ struct ToAssetMetaPropertType
   static constexpr AssetMetaPropertyType result = AssetMetaPropertyType::Unknown;
 };
 template<typename EnumType>
-struct ToAssetMetaPropertType<EnumType, std::enable_if_t<std::is_enum_v<EnumType>, std::true_type>>
+struct ToAssetMetaPropertType<EnumType, typename std::enable_if<std::is_enum_v<EnumType>>::type>
 {
-  static constexpr AssetMetaPropertyType result = std::is_signed<std::underlying_type_t<EnumType>>::result ? 
+  static constexpr AssetMetaPropertyType result = std::is_signed<std::underlying_type_t<EnumType>>::value ? 
     AssetMetaPropertyType::SignedEnum : AssetMetaPropertyType::UnsignedEnum;
 };
 #define DEFINE_ToAssetMetaPropertyType(input, output) \
@@ -158,10 +158,9 @@ DEFINE_ToAssetMetaPropertyType(float, Float)
       ASSET_META_PROPERTY_LIST(ASSET_META_PROPERTY_FIELD, ASSET_META_PROPERTY_EMPTY) \
     }; \
     \
-    static constexpr int64 metaFieldPropertyCount = 1 ASSET_META_PROPERTY_LIST(ASSET_META_PROPERTY_EMPTY, ASSET_META_PROPERTY_PLUS_ONE) ; \
+    static constexpr int64 metaFieldPropertyCount = 0 ASSET_META_PROPERTY_LIST(ASSET_META_PROPERTY_EMPTY, ASSET_META_PROPERTY_PLUS_ONE) ; \
     static const AssetMetaPropertyReflection* getMetaFieldPropertyReflections() { \
-      static const AssetMetaPropertyReflection fieldPropertyReflections[metaFieldPropertyCount] = { \
-        {"assetType", "AssetType", sizeof(AssetType), offsetof(name, assetType), ToAssetMetaPropertType<AssetMetaPropertyType>::result}, \
+      static const AssetMetaPropertyReflection fieldPropertyReflections[metaFieldPropertyCount + 1] = { \
         ASSET_META_PROPERTY_LIST(ASSET_META_PROPERTY_EMPTY, ASSET_META_PROPERTY_FIELD_REFLECTION) \
       }; \
       return fieldPropertyReflections; \

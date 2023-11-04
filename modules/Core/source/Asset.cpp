@@ -142,8 +142,8 @@ public:
 
       AssetType assetType = AssetType::Unknown;
       char* assetMetaData = reinterpret_cast<char*>(assetMetaFileData.data());
-      if (!ensure(tryParseConfig(assetMetaData, assetMetaFileData.size(), [&assetType](const ConfigKeyValueNode& node) -> bool {
-          if (node.isKey("AssetType"))
+      if (!ensure(tryParseConfig(assetMetaData, assetMetaFileData.size(), [&assetType](const ConfigKeyValueNode& node) {
+          if (node.isKey("assetType"))
           {
             assetType = assetTypeStringToEnum(node.value);
             return true;
@@ -187,6 +187,100 @@ public:
           ensureNoEntry();
           return;
       }
+      Asset* assetBase = *pointerInAssetDirectory;
+
+      // TODO: get rid of the unnecessary copy after removing the metadat from initialize()
+      std::vector<byte> assetMetaFileDataCopy2 = assetMetaFileDataCopy;
+      tryParseConfig((char*)assetMetaFileDataCopy2.data(), (int64)assetMetaFileDataCopy2.size(), [=](const ConfigKeyValueNode& Node) {
+        for(int64 fieldIndex = 0; fieldIndex < metaFieldPropertyReflectionCount; ++fieldIndex)
+        {
+          const AssetMetaPropertyReflection& reflection = metaFieldPropertyReflections[fieldIndex];
+          if(isEqual(Node.key, reflection.name))
+          {
+            switch(reflection.type)
+            {
+              #define REFLECTION_ASSIGN_INT_CASE(MetaPropertyType, ValueType) \
+              case AssetMetaPropertyType::MetaPropertyType: \
+              { \
+                ValueType value = (ValueType)Node.toInt(); \
+                *(ValueType*)(((byte*)assetBase) + reflection.offset) = value; \
+                break; \
+              }
+              REFLECTION_ASSIGN_INT_CASE(Int8, int8)
+              REFLECTION_ASSIGN_INT_CASE(Int16, int16)
+              REFLECTION_ASSIGN_INT_CASE(Int32, int32)
+              REFLECTION_ASSIGN_INT_CASE(Int64, int64)
+              REFLECTION_ASSIGN_INT_CASE(Uint8, uint8)
+              REFLECTION_ASSIGN_INT_CASE(Uint16, uint16)
+              REFLECTION_ASSIGN_INT_CASE(Uint32, uint32)
+              REFLECTION_ASSIGN_INT_CASE(Uint64, uint64)
+              #undef REFLECTION_ASSIGN_INT_CASE
+
+              case AssetMetaPropertyType::UnsignedEnum:
+              {
+                void* toEnumFunctionPointer = findToEnumFunction(reflection.typeName);
+                switch(reflection.size)
+                {
+                  #define REFLECTION_ASSIGN_UNSIGNED_ENUM_CASE(size, type) \
+                  case size: \
+                  { \
+                    using ToEnumFunctionPointer = type(*)(const char*); \
+                    ToEnumFunctionPointer toEnumFunction = (ToEnumFunctionPointer)toEnumFunctionPointer; \
+                    type value = toEnumFunction(Node.value); \
+                    *(type*)(((byte*)assetBase) + reflection.offset) = value; \
+                    break; \
+                  }
+                  REFLECTION_ASSIGN_UNSIGNED_ENUM_CASE(1, uint8)
+                  REFLECTION_ASSIGN_UNSIGNED_ENUM_CASE(2, uint16)
+                  REFLECTION_ASSIGN_UNSIGNED_ENUM_CASE(4, uint32)
+                  REFLECTION_ASSIGN_UNSIGNED_ENUM_CASE(8, uint64)
+                  #undef REFLECTION_ASSIGN_UNSIGNED_ENUM_CASE
+
+                  default:
+                    ensureNoEntry();
+                    break;
+                }
+                break;
+              }
+
+              case AssetMetaPropertyType::SignedEnum:
+              {
+                void* toEnumFunctionPointer = findToEnumFunction(reflection.typeName);
+                switch(reflection.size)
+                {
+                  #define REFLECTION_ASSIGN_SIGNED_ENUM_CASE(size, type) \
+                  case size: \
+                  { \
+                    using ToEnumFunctionPointer = type(*)(const char*); \
+                    ToEnumFunctionPointer toEnumFunction = (ToEnumFunctionPointer)toEnumFunctionPointer; \
+                    type value = toEnumFunction(Node.value); \
+                    *(type*)(((byte*)assetBase) + reflection.offset) = value; \
+                    break; \
+                  }
+                  REFLECTION_ASSIGN_SIGNED_ENUM_CASE(1, int8)
+                  REFLECTION_ASSIGN_SIGNED_ENUM_CASE(2, int16)
+                  REFLECTION_ASSIGN_SIGNED_ENUM_CASE(4, int32)
+                  REFLECTION_ASSIGN_SIGNED_ENUM_CASE(8, int64)
+                  #undef REFLECTION_ASSIGN_SIGNED_ENUM_CASE
+
+                  default:
+                    ensureNoEntry();
+                    break;
+                }
+                break;
+              }
+
+              default:
+                ensureNoEntry();
+                break;
+            }
+
+            return false;
+          }
+        }
+
+        return false;
+      });
 
       const wchar_t* assetFileExtension = getFileExtension(assetFileName);
       memcpy(fileExtension, L"%s\0", wcslen(assetFileExtension) * 5);
@@ -541,7 +635,7 @@ void Texture2D::initialize(byte* metaData, int64 metaDataLength, byte* fileData,
   PixelFormat pixelFormat = PixelFormat::Invalid;
 
   tryParseConfig(reinterpret_cast<char*>(metaData), metaDataLength, [&](const ConfigKeyValueNode& node) -> bool {
-    if(node.isKey("CpuAccess"))
+    if(node.isKey("cpuAccess"))
     {
       if(isEqual(node.value, "Read"))
       {
@@ -556,19 +650,11 @@ void Texture2D::initialize(byte* metaData, int64 metaDataLength, byte* fileData,
         cpuAccess = CpuAccess::ReadWrite;
       }
     }
-    else if(node.isKey("Width"))
-    {
-      width = node.toInt();
-    }
-    else if(node.isKey("Height"))
-    {
-      height = node.toInt();
-    }
-    else if(node.isKey("PixelFormat"))
+    else if(node.isKey("pixelFormat"))
     {
       pixelFormat = toPixelFormat(node.value);
     }
-    else if(node.isKey("MipLevelCount"))
+    else if(node.isKey("mipLevelCount"))
     {
       mipLevelCount = node.toInt();
     }
