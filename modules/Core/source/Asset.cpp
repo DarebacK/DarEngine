@@ -427,11 +427,16 @@ AssetDirectory rootDirectory;
 
 static bool tryTraverseDirectory(wchar_t* wildcardPathBuffer, int64 wildcardPathLength, AssetDirectory* parentDirectory, WIN32_FIND_DATA* findData)
 {
-  HANDLE findHandle = FindFirstFile(wildcardPathBuffer, findData);
-  if (!findHandle)
+  HANDLE findHandle;
+  
   {
-    logError("Couldn't find the assets directory.");
-    return false;
+    TRACE_SCOPE("FindFirstFile");
+    findHandle = FindFirstFile(wildcardPathBuffer, findData);
+    if(!findHandle)
+    {
+      logError("Couldn't find the assets directory.");
+      return false;
+    }
   }
 
   while (FindNextFile(findHandle, findData))
@@ -442,6 +447,8 @@ static bool tryTraverseDirectory(wchar_t* wildcardPathBuffer, int64 wildcardPath
     }
     else if (findData->dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
     {
+      TRACE_SCOPE("initializeAssetDirectory");
+
       // Replace the wildcard with the directory name, followed by a wildcard
       swprintf(wildcardPathBuffer + wildcardPathLength - 1, MAX_PATH, L"%s\\*", findData->cFileName);
       const int64 subdirectoryWildcardPathLength = wildcardPathLength + wcslen(findData->cFileName) + 1;
@@ -469,6 +476,8 @@ static bool tryTraverseDirectory(wchar_t* wildcardPathBuffer, int64 wildcardPath
       {
         continue;
       }
+
+      TRACE_SCOPE("initializeAssetMeta");
 
       wchar_t metaFilePath[MAX_PATH];
       const int64 pathLength = wildcardPathLength - 1;
@@ -525,6 +534,7 @@ static bool tryTraverseDirectory(wchar_t* wildcardPathBuffer, int64 wildcardPath
       {
         #define ASSET_TYPE_CONSTRUCT(name) \
           case AssetType::name: { \
+            TRACE_SCOPE("allocate " #name); \
             name* asset = (name*) malloc(sizeof(name)); \
             parentDirectory->assets.emplace_back(asset); \
             assetBase = asset; \

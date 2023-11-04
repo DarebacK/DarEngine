@@ -111,6 +111,8 @@ unsigned long fileThreadMain(void* parameter)
 
 void initializeFileSystem()
 {
+  TRACE_SCOPE();
+
   threadShouldStop = false;
 
   fileThread = CreateThread(NULL, 0, &fileThreadMain, nullptr, 0, NULL);
@@ -128,6 +130,8 @@ void initializeFileSystem()
 
 void deinitializeFileSystem()
 {
+  TRACE_SCOPE();
+
   threadShouldStop = true;
 
   if (fileThread)

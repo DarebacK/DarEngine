@@ -127,6 +127,8 @@ void TaskManager::initialize()
 }
 void TaskManager::initialize(int inThreadCount)
 {
+  TRACE_SCOPE();
+
   if (isInitialized())
   {
     return;
@@ -157,6 +159,8 @@ void TaskManager::initialize(int inThreadCount)
 }
 void TaskManager::deinitialize()
 {
+  TRACE_SCOPE();
+
   threadsShouldStop = true;
 
   if (workerQueue.semaphore)
