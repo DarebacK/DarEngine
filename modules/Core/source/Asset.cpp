@@ -103,6 +103,101 @@ void Asset::unref()
   }
 }
 
+bool parseMetaProperty(const AssetMetaPropertyReflection* reflections, int64 reflectionCount, const ConfigKeyValueNode& node, void* destination)
+{
+  for(int64 fieldIndex = 0; fieldIndex < reflectionCount; ++fieldIndex)
+  {
+    {
+      // Meta field property auto initialization.
+      const AssetMetaPropertyReflection& reflection = reflections[fieldIndex];
+      if(isEqual(node.key, reflection.name))
+      {
+        switch(reflection.type)
+        {
+          #define REFLECTION_ASSIGN_INT_CASE(MetaPropertyType, ValueType) \
+            case AssetMetaPropertyType::MetaPropertyType: \
+            { \
+              ValueType value = (ValueType)node.toInt(); \
+              *(ValueType*)(((byte*)destination) + reflection.offset) = value; \
+              break; \
+            }
+          REFLECTION_ASSIGN_INT_CASE(Int8, int8)
+          REFLECTION_ASSIGN_INT_CASE(Int16, int16)
+          REFLECTION_ASSIGN_INT_CASE(Int32, int32)
+          REFLECTION_ASSIGN_INT_CASE(Int64, int64)
+          REFLECTION_ASSIGN_INT_CASE(Uint8, uint8)
+          REFLECTION_ASSIGN_INT_CASE(Uint16, uint16)
+          REFLECTION_ASSIGN_INT_CASE(Uint32, uint32)
+          REFLECTION_ASSIGN_INT_CASE(Uint64, uint64)
+          #undef REFLECTION_ASSIGN_INT_CASE
+
+          case AssetMetaPropertyType::UnsignedEnum:
+          {
+            void* toEnumFunctionPointer = findToEnumFunction(reflection.typeName);
+            switch(reflection.size)
+            {
+              #define REFLECTION_ASSIGN_UNSIGNED_ENUM_CASE(size, type) \
+                case size: \
+                { \
+                  using ToEnumFunctionPointer = type(*)(const char*); \
+                  ToEnumFunctionPointer toEnumFunction = (ToEnumFunctionPointer)toEnumFunctionPointer; \
+                  type value = toEnumFunction(node.value); \
+                  *(type*)(((byte*)destination) + reflection.offset) = value; \
+                  break; \
+                }
+              REFLECTION_ASSIGN_UNSIGNED_ENUM_CASE(1, uint8)
+              REFLECTION_ASSIGN_UNSIGNED_ENUM_CASE(2, uint16)
+              REFLECTION_ASSIGN_UNSIGNED_ENUM_CASE(4, uint32)
+              REFLECTION_ASSIGN_UNSIGNED_ENUM_CASE(8, uint64)
+              #undef REFLECTION_ASSIGN_UNSIGNED_ENUM_CASE
+
+              default:
+                ensureNoEntry();
+                break;
+            }
+            break;
+          }
+
+          case AssetMetaPropertyType::SignedEnum:
+          {
+            void* toEnumFunctionPointer = findToEnumFunction(reflection.typeName);
+            switch(reflection.size)
+            {
+              #define REFLECTION_ASSIGN_SIGNED_ENUM_CASE(size, type) \
+                case size: \
+                { \
+                  using ToEnumFunctionPointer = type(*)(const char*); \
+                  ToEnumFunctionPointer toEnumFunction = (ToEnumFunctionPointer)toEnumFunctionPointer; \
+                  type value = toEnumFunction(node.value); \
+                  *(type*)(((byte*)destination) + reflection.offset) = value; \
+                  break; \
+                }
+              REFLECTION_ASSIGN_SIGNED_ENUM_CASE(1, int8)
+              REFLECTION_ASSIGN_SIGNED_ENUM_CASE(2, int16)
+              REFLECTION_ASSIGN_SIGNED_ENUM_CASE(4, int32)
+              REFLECTION_ASSIGN_SIGNED_ENUM_CASE(8, int64)
+              #undef REFLECTION_ASSIGN_SIGNED_ENUM_CASE
+
+              default:
+                ensureNoEntry();
+                break;
+            }
+            break;
+          }
+
+          default:
+            ensureNoEntry();
+            break;
+        }
+
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
 class AssetDirectory
 {
 public:
@@ -138,6 +233,7 @@ public:
       std::vector<byte> assetMetaFileData;
       ensure(tryReadEntireFile(assetPath, assetMetaFileData));
       // Used for second parse as the parse changes the data.
+      // TODO: do custom non-intrusive parsing for the assetType to avoid doing this copy.
       std::vector<byte> assetMetaFileDataCopy = assetMetaFileData;
 
       AssetType assetType = AssetType::Unknown;
@@ -164,6 +260,7 @@ public:
       int64 metaFieldPropertyReflectionCount;
       const AssetMetaPropertyReflection* initializationPropertyReflections;
       int64 initializationPropertyReflectionCount;
+      void* initializationProperties;
       switch(assetType)
       {
         #define ASSET_TYPE_CONSTRUCT(name) \
@@ -177,7 +274,8 @@ public:
             metaFieldPropertyReflectionCount = name::metaFieldPropertyCount; \
             initializationPropertyReflections = name::getInitializationPropertyReflections(); \
             initializationPropertyReflectionCount = name::initializationFieldPropertyCount; \
-              break; \
+            initializationProperties = new name::InitializationProperties(); \
+            break; \
           }
 
         ASSET_TYPE_LIST(ASSET_TYPE_CONSTRUCT)
@@ -189,94 +287,14 @@ public:
       }
       Asset* assetBase = *pointerInAssetDirectory;
 
-      // TODO: get rid of the unnecessary copy after removing the metadat from initialize()
-      std::vector<byte> assetMetaFileDataCopy2 = assetMetaFileDataCopy;
-      tryParseConfig((char*)assetMetaFileDataCopy2.data(), (int64)assetMetaFileDataCopy2.size(), [=](const ConfigKeyValueNode& Node) {
-        for(int64 fieldIndex = 0; fieldIndex < metaFieldPropertyReflectionCount; ++fieldIndex)
+      tryParseConfig((char*)assetMetaFileDataCopy.data(), (int64)assetMetaFileDataCopy.size(), [=](const ConfigKeyValueNode& node) {
+        if(parseMetaProperty(metaFieldPropertyReflections, metaFieldPropertyReflectionCount, node, assetBase))
         {
-          const AssetMetaPropertyReflection& reflection = metaFieldPropertyReflections[fieldIndex];
-          if(isEqual(Node.key, reflection.name))
-          {
-            switch(reflection.type)
-            {
-              #define REFLECTION_ASSIGN_INT_CASE(MetaPropertyType, ValueType) \
-              case AssetMetaPropertyType::MetaPropertyType: \
-              { \
-                ValueType value = (ValueType)Node.toInt(); \
-                *(ValueType*)(((byte*)assetBase) + reflection.offset) = value; \
-                break; \
-              }
-              REFLECTION_ASSIGN_INT_CASE(Int8, int8)
-              REFLECTION_ASSIGN_INT_CASE(Int16, int16)
-              REFLECTION_ASSIGN_INT_CASE(Int32, int32)
-              REFLECTION_ASSIGN_INT_CASE(Int64, int64)
-              REFLECTION_ASSIGN_INT_CASE(Uint8, uint8)
-              REFLECTION_ASSIGN_INT_CASE(Uint16, uint16)
-              REFLECTION_ASSIGN_INT_CASE(Uint32, uint32)
-              REFLECTION_ASSIGN_INT_CASE(Uint64, uint64)
-              #undef REFLECTION_ASSIGN_INT_CASE
-
-              case AssetMetaPropertyType::UnsignedEnum:
-              {
-                void* toEnumFunctionPointer = findToEnumFunction(reflection.typeName);
-                switch(reflection.size)
-                {
-                  #define REFLECTION_ASSIGN_UNSIGNED_ENUM_CASE(size, type) \
-                  case size: \
-                  { \
-                    using ToEnumFunctionPointer = type(*)(const char*); \
-                    ToEnumFunctionPointer toEnumFunction = (ToEnumFunctionPointer)toEnumFunctionPointer; \
-                    type value = toEnumFunction(Node.value); \
-                    *(type*)(((byte*)assetBase) + reflection.offset) = value; \
-                    break; \
-                  }
-                  REFLECTION_ASSIGN_UNSIGNED_ENUM_CASE(1, uint8)
-                  REFLECTION_ASSIGN_UNSIGNED_ENUM_CASE(2, uint16)
-                  REFLECTION_ASSIGN_UNSIGNED_ENUM_CASE(4, uint32)
-                  REFLECTION_ASSIGN_UNSIGNED_ENUM_CASE(8, uint64)
-                  #undef REFLECTION_ASSIGN_UNSIGNED_ENUM_CASE
-
-                  default:
-                    ensureNoEntry();
-                    break;
-                }
-                break;
-              }
-
-              case AssetMetaPropertyType::SignedEnum:
-              {
-                void* toEnumFunctionPointer = findToEnumFunction(reflection.typeName);
-                switch(reflection.size)
-                {
-                  #define REFLECTION_ASSIGN_SIGNED_ENUM_CASE(size, type) \
-                  case size: \
-                  { \
-                    using ToEnumFunctionPointer = type(*)(const char*); \
-                    ToEnumFunctionPointer toEnumFunction = (ToEnumFunctionPointer)toEnumFunctionPointer; \
-                    type value = toEnumFunction(Node.value); \
-                    *(type*)(((byte*)assetBase) + reflection.offset) = value; \
-                    break; \
-                  }
-                  REFLECTION_ASSIGN_SIGNED_ENUM_CASE(1, int8)
-                  REFLECTION_ASSIGN_SIGNED_ENUM_CASE(2, int16)
-                  REFLECTION_ASSIGN_SIGNED_ENUM_CASE(4, int32)
-                  REFLECTION_ASSIGN_SIGNED_ENUM_CASE(8, int64)
-                  #undef REFLECTION_ASSIGN_SIGNED_ENUM_CASE
-
-                  default:
-                    ensureNoEntry();
-                    break;
-                }
-                break;
-              }
-
-              default:
-                ensureNoEntry();
-                break;
-            }
-
-            return false;
-          }
+          return false;
+        }
+        if(parseMetaProperty(initializationPropertyReflections, initializationPropertyReflectionCount, node, initializationProperties))
+        {
+          return false;
         }
 
         return false;
@@ -289,7 +307,8 @@ public:
       // TODO: use file memory mapping for textures to avoid the unnecessary intermediate buffer.
 
       // TODO: get rid of manually parsing metadata in initialize. Rather use macros with offsetof to automatically populate a struct with metadata passed to the initialize function.
-      readFileAsync(std::wstring(assetPath), ThreadType::Worker, [assetType, assetMetaFileDataCopy = std::move(assetMetaFileDataCopy), assetFileExtension, pointerInAssetDirectory](ReadFileAsync& context) {
+      readFileAsync(std::wstring(assetPath), ThreadType::Worker, 
+        [assetType, assetFileExtension, pointerInAssetDirectory, initializationProperties](ReadFileAsync& context) {
         ensureTrue(context.status == ReadFileAsync::Status::Success);
 
         switch(assetType)
@@ -298,8 +317,10 @@ public:
           case AssetType::name: { \
             TRACE_SCOPE(#name "::initialize"); \
             name* asset = reinterpret_cast<name*>(*pointerInAssetDirectory); \
-            asset->initialize((byte*)assetMetaFileDataCopy.data(), assetMetaFileDataCopy.size(), context.buffer.data, context.buffer.size, assetFileExtension); \
+            name::InitializationProperties* typedInitializationProperties = (name::InitializationProperties*)initializationProperties; \
+            asset->initialize(*typedInitializationProperties, context.buffer.data, context.buffer.size, assetFileExtension); \
             asset->initializedTaskEvent->complete(); \
+            delete typedInitializationProperties; \
               break; \
           }
 
@@ -536,7 +557,7 @@ Asset* internalFindAsset(AssetDirectory* directory, const wchar_t* path)
   return nullptr;
 }
 
-void Config::initialize(byte* metaData, int64 metaDataLength, byte* fileData, int64 fileDataLength, const wchar_t* fileNameExtension)
+void Config::initialize(const InitializationProperties& properties, byte* fileData, int64 fileDataLength, const wchar_t* fileNameExtension)
 {
   tryParseConfig(reinterpret_cast<char*>(fileData), fileDataLength, [this](const ConfigKeyValueNode& node) -> bool {
     std::string value{node.value, static_cast<uint64>(node.valueLength)};
@@ -627,40 +648,12 @@ DXGI_FORMAT toDxgiFormat(PixelFormat pixelFormat)
   }
 }
 
-void Texture2D::initialize(byte* metaData, int64 metaDataLength, byte* fileData, int64 fileDataLength, const wchar_t* fileNameExtension)
+void Texture2D::initialize(const InitializationProperties& properties, byte* fileData, int64 fileDataLength, const wchar_t* fileNameExtension)
 {
   // TODO: Maybe don't use dds files anymore as we have the meta file? We could get rid of passing fileNameExtension then.
 
-  int8 mipLevelCount = 1;
-  PixelFormat pixelFormat = PixelFormat::Invalid;
-
-  tryParseConfig(reinterpret_cast<char*>(metaData), metaDataLength, [&](const ConfigKeyValueNode& node) -> bool {
-    if(node.isKey("cpuAccess"))
-    {
-      if(isEqual(node.value, "Read"))
-      {
-        cpuAccess = CpuAccess::Read;
-      }
-      else if(isEqual(node.value, "Write"))
-      {
-        cpuAccess = CpuAccess::Write;
-      }
-      else if(isEqual(node.value, "ReadWrite"))
-      {
-        cpuAccess = CpuAccess::ReadWrite;
-      }
-    }
-    else if(node.isKey("pixelFormat"))
-    {
-      pixelFormat = toPixelFormat(node.value);
-    }
-    else if(node.isKey("mipLevelCount"))
-    {
-      mipLevelCount = node.toInt();
-    }
-
-    return false;
-  });
+  int8 mipLevelCount = properties.mipLevelCount;
+  PixelFormat pixelFormat = properties.pixelFormat;
 
   if(isEqual(fileNameExtension, L"dds"))
   {

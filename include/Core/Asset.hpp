@@ -157,6 +157,7 @@ DEFINE_ToAssetMetaPropertyType(float, Float)
     { \
       ASSET_META_PROPERTY_LIST(ASSET_META_PROPERTY_FIELD, ASSET_META_PROPERTY_EMPTY) \
     }; \
+    void initialize(const InitializationProperties& properties, byte* fileData, int64 fileDataLength, const wchar_t* fileNameExtension); \
     \
     static constexpr int64 metaFieldPropertyCount = 0 ASSET_META_PROPERTY_LIST(ASSET_META_PROPERTY_EMPTY, ASSET_META_PROPERTY_PLUS_ONE) ; \
     static const AssetMetaPropertyReflection* getMetaFieldPropertyReflections() { \
@@ -178,8 +179,6 @@ DEFINE_ToAssetMetaPropertyType(float, Float)
 ASSET_CLASS_BEGIN(Config)
 public:
 
-  void initialize(byte* metaData, int64 metaDataLength, byte* fileData, int64 fileDataLength, const wchar_t* fileNameExtension);
-
   bool getBool(const char* key) const;
   float getFloat(const char* key) const;
   double getDouble(const char* key) const;
@@ -195,8 +194,6 @@ ASSET_CLASS_END(Config)
 
 ASSET_CLASS_BEGIN(Texture2D)
 public:
-
-  void initialize(byte* metaData, int64 metaDataLength, byte* fileData, int64 fileDataLength, const wchar_t* fileNameExtension);
 
   CComPtr<ID3D11ShaderResourceView> view;
   CComPtr<ID3D11Texture2D> texture;
