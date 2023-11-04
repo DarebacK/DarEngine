@@ -192,7 +192,7 @@ void* findToEnumFunction(const char* enumName);
   }; \
   constexpr int64 name##ValueCount = 0 DAR_ENUM_LIST(DAR_ENUM_INCREMENT); \
   template<typename EnumType> \
-  EnumType toEnum(const char* string) \
+  EnumType internaltoEnum##name(const char* string) \
   { \
     if(false) {} \
     DAR_ENUM_LIST(DAR_ENUM_FROM_STRING) \
@@ -207,6 +207,6 @@ void* findToEnumFunction(const char* enumName);
 #define DAR_ENUM_IMPLEMENT(name) \
   name to##name(const char* string) \
   { \
-    return toEnum<name>(string); \
+    return internaltoEnum##name<name>(string); \
   } \
   static EnumRegisterer name##EnumRegisterer{#name, reinterpret_cast<void*>(&to##name)};
