@@ -1,8 +1,6 @@
 #pragma once
 
 #include <functional>
-#include <mutex>
-#include <queue>
 
 #include "Core/Core.hpp"
 #include "Core/Memory.hpp"

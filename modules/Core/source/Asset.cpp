@@ -3,6 +3,7 @@
 #include "Core/Asset.hpp"
 
 #include <string>
+#include <algorithm>
 
 #include "Core/File.hpp"
 #include "Core/String.hpp"
