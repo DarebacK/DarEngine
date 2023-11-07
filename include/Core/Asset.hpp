@@ -136,7 +136,7 @@ DEFINE_ToAssetMetaPropertyType(float, Float)
 
 #define ASSET_CLASS_END(name) ASSET_META_PROPERTY_LIST(ASSET_META_PROPERTY_FIELD) \
   public: \
-    void initialize(const byte* fileData, int64 fileDataLength, const wchar_t* fileNameExtension); \
+    void initialize(const byte* fileData, int64 fileDataLength); \
     \
     static constexpr int64 metaPropertyCount = 0 ASSET_META_PROPERTY_LIST(ASSET_META_PROPERTY_PLUS_ONE) ; \
     static const AssetMetaPropertyReflection* getMetaPropertyReflections() { \

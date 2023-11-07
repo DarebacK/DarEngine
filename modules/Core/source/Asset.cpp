@@ -74,14 +74,10 @@ static wchar_t* getFileExtension(wchar_t* fileName)
   return const_cast<wchar_t*>(getFileExtension(const_cast<const wchar_t*>(fileName)));
 }
 
-struct InitializeAssetTaskData
+DEFINE_TASK_BEGIN(initializeAsset, Asset)
 {
-  // TODO: Get rid of passing the extension as AssetBase now contains the path.
-  const wchar_t* assetFileExtension;
-  Asset* assetBase;
-};
-DEFINE_TASK_BEGIN(initializeAsset, InitializeAssetTaskData)
-{
+  taskDataGuard.release();
+
   // Use memory mapped file to avoid unnecessary copy when passing the resulting to a buffer, 
   // e.g. during ID3D11Device::CreateTexture2D.
 
@@ -90,20 +86,22 @@ DEFINE_TASK_BEGIN(initializeAsset, InitializeAssetTaskData)
   void* fileView;
   int64 fileSize;
 
+  Asset& assetBase = taskData;
+
   {
     TRACE_SCOPE("mapViewOfAssetFile");
 
-    fileHandle = CreateFile(taskData.assetBase->path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
+    fileHandle = CreateFile(assetBase.path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
     if(!ensure(fileHandle))
     {
-      logError("Failed to load %S asset file", taskData.assetBase->path);
+      logError("Failed to load %S asset file", assetBase.path);
       return;
     }
 
     fileMapping = CreateFileMapping(fileHandle, NULL, PAGE_READONLY, 0, 0, NULL);
     if(!ensure(fileMapping))
     {
-      logError("Failed to create file mapping for %S asset file", taskData.assetBase->path);
+      logError("Failed to create file mapping for %S asset file", assetBase.path);
       CloseHandle(fileHandle);
       return;
     }
@@ -113,7 +111,7 @@ DEFINE_TASK_BEGIN(initializeAsset, InitializeAssetTaskData)
     {
       CloseHandle(fileMapping);
       CloseHandle(fileHandle);
-      logError("Failed to create map view for %S asset file", taskData.assetBase->path);
+      logError("Failed to create map view for %S asset file", assetBase.path);
       return;
     }
 
@@ -122,14 +120,14 @@ DEFINE_TASK_BEGIN(initializeAsset, InitializeAssetTaskData)
     fileSize = int64(uint64(fileSizeLow) | (uint64(fileSizeHigh) << 32));
   }
 
-  switch(taskData.assetBase->assetType)
+  switch(assetBase.assetType)
   {
     #define ASSET_TYPE_INITIALIZE(name) \
           case AssetType::name: { \
             TRACE_SCOPE(#name "::initialize"); \
-            name* asset = reinterpret_cast<name*>(taskData.assetBase); \
-            asset->initialize((const byte*)fileView, fileSize, taskData.assetFileExtension); \
-            asset->initializedTaskEvent->complete(); \
+            name& asset = reinterpret_cast<name&>(assetBase); \
+            asset.initialize((const byte*)fileView, fileSize); \
+            asset.initializedTaskEvent->complete(); \
               break; \
           }
 
@@ -173,12 +171,7 @@ void Asset::ref()
         break;
     }
 
-    const wchar_t* assetFileExtension = getFileExtension(path);
-
-    InitializeAssetTaskData* initializeTaskData = new InitializeAssetTaskData();
-    initializeTaskData->assetFileExtension = assetFileExtension;
-    initializeTaskData->assetBase = this;
-    taskManager.schedule(initializeAsset, initializeTaskData, ThreadType::Worker);
+    taskManager.schedule(initializeAsset, this, ThreadType::Worker);
   }
 }
 
@@ -699,7 +692,7 @@ Asset* internalFindAsset(AssetDirectory* directory, const wchar_t* path)
   return nullptr;
 }
 
-void Config::initialize(const byte* fileData, int64 fileDataLength, const wchar_t* fileNameExtension)
+void Config::initialize(const byte* fileData, int64 fileDataLength)
 {
   std::vector<char> fileDataCopy;
   fileDataCopy.insert(fileDataCopy.begin(), fileData, fileData + fileDataLength);
@@ -792,10 +785,11 @@ DXGI_FORMAT toDxgiFormat(PixelFormat pixelFormat)
   }
 }
 
-void Texture2D::initialize(const byte* fileData, int64 fileDataLength, const wchar_t* fileNameExtension)
+void Texture2D::initialize(const byte* fileData, int64 fileDataLength)
 {
-  // TODO: Maybe don't use dds files anymore as we have the meta file? We could get rid of passing fileNameExtension then.
+  // TODO: Maybe don't use dds files anymore as we have the meta file?
 
+  const wchar_t* fileNameExtension = getFileExtension(path);
   if(isEqual(fileNameExtension, L"dds"))
   {
     if(!ensure(SUCCEEDED(createTextureFromDDS(fileData, fileDataLength, (ID3D11Resource**)&texture, &view))))
