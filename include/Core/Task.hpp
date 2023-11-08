@@ -34,8 +34,9 @@ public:
   // For events that are used just as a prerequisite.
   static Ref<TaskEvent> create();
 
-  void complete() { return subsequents.complete(); }
+  void complete();
   bool isComplete() const { return subsequents.isComplete; }
+  void waitForCompletion();
 
 private:
 
@@ -46,6 +47,7 @@ private:
   TaskEvent() = default;
   TaskEvent(const TaskEvent& other) = delete;
   TaskEvent(TaskEvent&& other) = delete;
+  ~TaskEvent();
 
   void ref();
   void unref();
@@ -88,8 +90,13 @@ private:
   void* data = nullptr;
   ThreadType desiredThread = ThreadType::Unknown;
 
-  std::atomic<int8> refCount = 0;
-  std::atomic<int8> prerequisiteCount = 0;
+  // Initialized only when waitForCompletion() was called.
+  std::atomic<void*> waitableEvent = nullptr;
+
+  std::atomic<int16> refCount = 0;
+  std::atomic<int16> prerequisiteCount = 0;
+
+
 };
 
 // Main class of the task system. User code will mostly interact with this exclusively.

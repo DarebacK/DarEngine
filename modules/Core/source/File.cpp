@@ -1,5 +1,7 @@
 #include "Core/File.hpp"
 
+#include "Core/String.hpp"
+
 #include <fstream>
 #include <queue>
 
@@ -290,4 +292,32 @@ int64 getFileSize(const wchar_t* path)
   size.HighPart = data.nFileSizeHigh;
   size.LowPart = data.nFileSizeLow;
   return int64(size.QuadPart);
+}
+
+const wchar_t* findPathRelativeToWorkingDirectory(const wchar_t* absolutePath)
+{
+  // This wasn't tested yet, because it wasn't needed after all, but might come handy later.
+  ensureNoEntry();
+
+  wchar_t workingDirectory[MAX_PATH];
+  uint64 workingDirectoryLength = GetCurrentDirectory(MAX_PATH, workingDirectory);
+  if(!ensure(workingDirectoryLength > 0))
+  {
+    logError("getPathRelativeToWorkingDirectory failed to get current directory.");
+    return nullptr;
+  }
+
+  uint64 absolutePathLength = wcslen(absolutePath);
+
+  if(absolutePathLength < workingDirectoryLength)
+  {
+    return nullptr;
+  }
+
+  if(findSubstring(absolutePath, absolutePathLength, workingDirectory, workingDirectoryLength) == nullptr)
+  {
+    return nullptr;
+  }
+
+  return absolutePath + workingDirectoryLength;
 }

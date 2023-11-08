@@ -33,6 +33,49 @@ bool contains(const wchar_t* string1, const wchar_t* string2, int64 lengthToComp
   return true;
 }
 
+const wchar_t* findSubstring(const wchar_t* string, int64 stringLength, const wchar_t* substring, int64 substringLength)
+{
+  if(!ensure(substringLength <= stringLength))
+  {
+    return nullptr;
+  }
+
+  while(stringLength >= substringLength)
+  {
+    bool matches = true;
+    for(int64 substringIndex = 0; substringIndex < substringLength; substringIndex++)
+    {
+      if(string[substringIndex] != substring[substringIndex])
+      {
+        matches = false;
+        break;
+      }
+    }
+
+    if(matches)
+    {
+      return string;
+    }
+
+    string++;
+    stringLength--;
+  }
+
+  return nullptr;
+}
+const wchar_t* findSubstring(const wchar_t* string, int64 stringLength, const wchar_t* substring)
+{
+  return findSubstring(string, stringLength, substring, wcslen(substring));
+}
+const wchar_t* findSubstring(const wchar_t* string, const wchar_t* substring, int64 substringLength)
+{
+  return findSubstring(string, wcslen(string), substring, substringLength);
+}
+const wchar_t* findSubstring(const wchar_t* string, const wchar_t* substring)
+{
+  return findSubstring(string, wcslen(string), substring, wcslen(substring));
+}
+
 int64 getLengthWithoutTrailingSlashes(const wchar_t* string)
 {
   ensureTrue(string != nullptr, 0);

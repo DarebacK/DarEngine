@@ -55,6 +55,10 @@ bool tryWriteFile(const wchar_t* filePath, const byte* data, int64 dataSize);
 bool fileExists(const wchar_t* path);
 int64 getFileSize(const wchar_t* path);
 
+// Returns moved pointer to the beginning of path relative to current working directory.
+// Returns nullptr if absolutePath does not contain the current working directory path.
+const wchar_t* findPathRelativeToWorkingDirectory(const wchar_t* absolutePath);
+
 void initializeFileSystem();
 void deinitializeFileSystem();
 class FileSystemGuard

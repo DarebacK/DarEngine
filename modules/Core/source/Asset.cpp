@@ -630,6 +630,10 @@ AssetDirectoryRef::AssetDirectoryRef(const wchar_t* path)
 {
   initialize(path);
 }
+AssetDirectoryRef::AssetDirectoryRef(AssetDirectoryRef&& other)
+{
+  std::swap(directory, other.directory);
+}
 AssetDirectoryRef::~AssetDirectoryRef()
 {
   if(directory)

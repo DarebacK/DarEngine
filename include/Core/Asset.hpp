@@ -18,11 +18,9 @@ public:
   AssetDirectoryRef() = default;
   // Increases the ref count of assets in the directory and it's subdirectories, potentially causing their async loading and initialization.
   AssetDirectoryRef(const wchar_t* path);
-  AssetDirectoryRef(const AssetDirectoryRef& other);
+  AssetDirectoryRef(const AssetDirectoryRef& other) = delete;
   AssetDirectoryRef(AssetDirectoryRef&& other);
   ~AssetDirectoryRef();
-  AssetDirectoryRef& operator=(const AssetDirectoryRef& other);
-  AssetDirectoryRef& operator=(AssetDirectoryRef&& other);
 
   void initialize(const wchar_t* path);
 

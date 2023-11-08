@@ -68,6 +68,14 @@ TaskEvent::TaskEvent(TaskFunction inFunction, void* inData, ThreadType inDesired
   , desiredThread(inDesiredThread)
 {
 }
+TaskEvent::~TaskEvent()
+{
+  if(waitableEvent)
+  {
+    CloseHandle(waitableEvent);
+    waitableEvent = nullptr;
+  }
+}
 void TaskEvent::ref()
 {
   ++refCount;
@@ -80,6 +88,57 @@ void TaskEvent::unref()
   {
     this->~TaskEvent();
     taskEventAllocator.deallocate(this);
+  }
+}
+void TaskEvent::complete()
+{
+  // Have to signal waitableEvent before completing subsequents, 
+  // otherwise waitForCompletion could close the handle before we signal it.
+  if(waitableEvent)
+  {
+    ensure(SetEvent(waitableEvent));
+  }
+
+  subsequents.complete();
+}
+void TaskEvent::waitForCompletion()
+{
+  if(isComplete())
+  {
+    return;
+  }
+
+  if(!waitableEvent)
+  {
+    void* waitableEventLocal = CreateEvent(nullptr, false, false, nullptr);
+
+    void* nullPointer = nullptr;
+    if(!waitableEvent.compare_exchange_strong(nullPointer, waitableEventLocal))
+    {
+      if(waitableEventLocal)
+      {
+        CloseHandle(waitableEventLocal);
+      }
+    }
+
+    if(!ensure(waitableEvent != nullptr))
+    {
+      logWarning("TaskEvent::waitForCompletion failed to create waitable event. Have to resort to busy wait.");
+      while(!isComplete());
+      return;
+    }
+
+    // The task could had been completed before we created the event.
+    if(isComplete())
+    {
+      return;
+    }
+  }
+
+  if(WaitForSingleObject(waitableEvent, INFINITE) == WAIT_FAILED)
+  {
+    logWarning("TaskEvent::waitForCompletion failed to wait for waitable event. Have to resort to busy wait.");
+    while(!isComplete());
   }
 }
 void TaskEvent::addPrerequisite()
