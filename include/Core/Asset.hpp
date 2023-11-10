@@ -89,6 +89,7 @@ enum class AssetMetaPropertyType : uint8
   Uint16,
   Uint32,
   Uint64,
+  Bool,
   Float,
   SignedEnum,
   UnsignedEnum
@@ -130,10 +131,10 @@ DEFINE_ToAssetMetaPropertyType(uint8, Uint8)
 DEFINE_ToAssetMetaPropertyType(uint16, Uint16)
 DEFINE_ToAssetMetaPropertyType(uint32, Uint32)
 DEFINE_ToAssetMetaPropertyType(uint64, Uint64)
+DEFINE_ToAssetMetaPropertyType(bool, Bool)
 DEFINE_ToAssetMetaPropertyType(float, Float)
 
-#define ASSET_CLASS_END(name) ASSET_META_PROPERTY_LIST(ASSET_META_PROPERTY_FIELD) \
-  public: \
+#define ASSET_CLASS_END(name) public: ASSET_META_PROPERTY_LIST(ASSET_META_PROPERTY_FIELD) \
     void initialize(const byte* fileData, int64 fileDataLength); \
     \
     static constexpr int64 metaPropertyCount = 0 ASSET_META_PROPERTY_LIST(ASSET_META_PROPERTY_PLUS_ONE) ; \
@@ -168,21 +169,29 @@ public:
   CComPtr<ID3D11ShaderResourceView> view;
   CComPtr<ID3D11Texture2D> texture;
 
-  enum class CpuAccess : uint8
-  {
-    None = 0,
-    Read,
-    Write,
-    ReadWrite
-  };
-  CpuAccess cpuAccess = CpuAccess::None;
-
   #define ASSET_META_PROPERTY_LIST(Property) \
   Property(int32, width, 0) \
   Property(int32, height, 0) \
   Property(int8, mipLevelCount, 1) \
+  Property(bool, cpuAccess, false) \
   Property(PixelFormat, pixelFormat, PixelFormat::Invalid)
+
+  template<typename PixelFormatValueType>
+  PixelFormatValueType sample(int64 x, int64 y);
+
+private:
+
+  std::vector<byte> cpuData;
+
 ASSET_CLASS_END(Texture2D)
+template<typename PixelFormatValueType>
+PixelFormatValueType Texture2D::sample(int64 x, int64 y)
+{
+  const int64 bytesPerPixel = toPixelSizeInBytes(pixelFormat);
+  ensure(sizeof(PixelFormatValueType) == bytesPerPixel);
+
+  return (PixelFormatValueType)cpuData[(y * width + x) * bytesPerPixel];
+}
 
 #define FIND_ASSET_INSTANTIATION(name) \
   template<> name* AssetDirectoryRef::findAsset<name>(const wchar_t* path) const;

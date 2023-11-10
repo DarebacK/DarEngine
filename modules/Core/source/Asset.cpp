@@ -212,12 +212,12 @@ bool parseMetaProperty(const AssetMetaPropertyReflection* reflections, int64 ref
       switch(reflection.type)
       {
         #define REFLECTION_ASSIGN_INT_CASE(MetaPropertyType, ValueType) \
-          case AssetMetaPropertyType::MetaPropertyType: \
-          { \
-            ValueType value = (ValueType)node.toInt(); \
-            *(ValueType*)(((byte*)destination) + reflection.offset) = value; \
-            break; \
-          }
+        case AssetMetaPropertyType::MetaPropertyType: \
+        { \
+          ValueType value = (ValueType)node.toInt(); \
+          *(ValueType*)(((byte*)destination) + reflection.offset) = value; \
+          break; \
+        }
         REFLECTION_ASSIGN_INT_CASE(Int8, int8)
         REFLECTION_ASSIGN_INT_CASE(Int16, int16)
         REFLECTION_ASSIGN_INT_CASE(Int32, int32)
@@ -227,6 +227,13 @@ bool parseMetaProperty(const AssetMetaPropertyReflection* reflections, int64 ref
         REFLECTION_ASSIGN_INT_CASE(Uint32, uint32)
         REFLECTION_ASSIGN_INT_CASE(Uint64, uint64)
         #undef REFLECTION_ASSIGN_INT_CASE
+
+        case AssetMetaPropertyType::Bool:
+        {
+          const bool value = node.toBool();
+          *(bool*)(((byte*)destination) + reflection.offset) = value;
+          break;
+        }
 
         case AssetMetaPropertyType::UnsignedEnum:
         {
@@ -305,12 +312,12 @@ void defaultInitialiazeMetaProperties(const AssetMetaPropertyReflection* reflect
     switch(reflection.type)
     {
       #define REFLECTION_ASSIGN_INT_CASE(MetaPropertyType, ValueType) \
-        case AssetMetaPropertyType::MetaPropertyType: \
-        { \
-          ValueType value = (ValueType)reflection.defaultValue; \
-          *(ValueType*)(((byte*)destination) + reflection.offset) = value; \
-          break; \
-        }
+      case AssetMetaPropertyType::MetaPropertyType: \
+      { \
+        ValueType value = (ValueType)reflection.defaultValue; \
+        *(ValueType*)(((byte*)destination) + reflection.offset) = value; \
+        break; \
+      }
       REFLECTION_ASSIGN_INT_CASE(Int8, int8)
       REFLECTION_ASSIGN_INT_CASE(Int16, int16)
       REFLECTION_ASSIGN_INT_CASE(Int32, int32)
@@ -320,6 +327,13 @@ void defaultInitialiazeMetaProperties(const AssetMetaPropertyReflection* reflect
       REFLECTION_ASSIGN_INT_CASE(Uint32, uint32)
       REFLECTION_ASSIGN_INT_CASE(Uint64, uint64)
       #undef REFLECTION_ASSIGN_INT_CASE
+
+      case AssetMetaPropertyType::Bool:
+      {
+        const bool value = (bool)reflection.defaultValue;
+        *(bool*)(((byte*)destination) + reflection.offset) = value;
+        break;
+      }
 
       case AssetMetaPropertyType::UnsignedEnum:
       {
@@ -809,8 +823,10 @@ void Texture2D::initialize(const byte* fileData, int64 fileDataLength)
     height = description.Height;
     mipLevelCount = description.MipLevels;
     pixelFormat = toPixelFormat(description.Format);
+    cpuAccess = description.CPUAccessFlags & D3D11_CPU_ACCESS_READ;
 
-    // TODO: Handle cpu access;
+    // Cpu access not implemented for DDS files.
+    ensure(!cpuAccess);
   }
   else
   {
@@ -818,7 +834,12 @@ void Texture2D::initialize(const byte* fileData, int64 fileDataLength)
     ensureTrue(mipLevelCount > 0);
     ensureTrue(pixelFormat != PixelFormat::Invalid);
 
-    // TODO: Handle cpu access.
+    if(cpuAccess)
+    {
+      cpuData.resize(fileDataLength);
+      memcpy(cpuData.data(), fileData, fileDataLength);
+    }
+
     const D3D11_TEXTURE2D_DESC description = {
       UINT(width),
       UINT(height),
