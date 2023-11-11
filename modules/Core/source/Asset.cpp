@@ -696,11 +696,19 @@ Asset* internalFindAsset(AssetDirectory* directory, const wchar_t* path)
     return nullptr;
   }
 
+  // Length can be without the file extension.
+  const int64 fileNameLength = lengthUntilFirstSlash;
   const wchar_t* fileName = subPath;
   for (uint64 assetIndex = 0; assetIndex < lastDirectory->assetFileNames.size(); ++assetIndex)
   {
-    const wchar_t* assetFileName = lastDirectory->assetFileNames[assetIndex].c_str();
-    if (isEqual(fileName, assetFileName))
+    const std::wstring assetFileName = lastDirectory->assetFileNames[assetIndex];
+
+    if(assetFileName.size() < fileNameLength)
+    {
+      continue;
+    }
+
+    if (contains(fileName, assetFileName.c_str(), fileNameLength))
     {
       return lastDirectory->assets[assetIndex];
     }
