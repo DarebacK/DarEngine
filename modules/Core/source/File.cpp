@@ -245,7 +245,7 @@ Ref<TaskEvent> readFileAsync(std::wstring&& path, ThreadType callbackThread, std
   taskData->context = readFileAsync(std::move(path));
   taskData->callback = std::move(callback);
 
-  return taskManager.schedule(readFileAsyncCallbackTask, taskData, callbackThread, &taskData->context->taskEvent, 1);
+  return schedule(readFileAsyncCallbackTask, taskData, callbackThread, &taskData->context->taskEvent, 1);
 }
 
 bool tryWriteFile(const wchar_t* filePath, const byte* data, int64 dataSize)

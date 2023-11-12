@@ -4,6 +4,108 @@
 
 #include <intrin.h>
 
+// Main class of the task system. User code will mostly interact with this exclusively.
+class TaskManager
+{
+public:
+
+  TaskManager();
+  TaskManager(const TaskManager& other) = delete;
+  TaskManager(TaskManager&& other) = delete;
+  ~TaskManager();
+
+  // Initializes with threadCount == max(processorCount - 1, 1);
+  void initialize();
+  void initialize(int threadCount);
+  void deinitialize();
+
+  // TODO: Move this to a free function, it will be simpler for the callers
+  Ref<TaskEvent> schedule(TaskFunction task, void* taskData, ThreadType desiredThread);
+  Ref<TaskEvent> schedule(TaskFunction task, void* taskData, ThreadType desiredThread, Ref<TaskEvent>* prerequisites, int8 prerequisiteCount);
+
+  // endValue means 1 past end
+  void parallelFor(int64 beginValue, int64 endValue, const std::function<void(int64 iterationIndex, int64 threadIndex)>& function);
+
+  // Process tasks meant for the main thread.
+  void processMainThreadTasks();
+
+  int64 getWorkerCount() { return static_cast<int64>(threads.size()); }
+
+private:
+
+  friend class TaskEvent;
+  // Schedule task that's ready for execution.
+  void enqueue(TaskFunction function, void* data, ThreadType desiredThread, Ref<TaskEvent> completionEvent);
+  void enqueueToMain(TaskFunction task, void* taskData, Ref<TaskEvent>&& completionEvent);
+  void enqueueToWorker(TaskFunction task, void* taskData, Ref<TaskEvent>&& completionEvent);
+
+  struct Task
+  {
+    TaskFunction function;
+    void* data;
+    Ref<TaskEvent> completionEvent;
+  };
+
+  struct TaskQueue
+  {
+    Task tasks[255];
+    void* semaphore = nullptr;
+
+    // Keep those shared variables on separate cache lines to avoid false sharing.
+    alignas(CACHE_LINE_SIZE) std::atomic<int64> taskIndexToRead = 0;
+    volatile int64 cachedTaskIndexToWrite = 0;
+
+    alignas(CACHE_LINE_SIZE) std::atomic<int64> taskIndexToWrite = 0;
+    volatile int64 cachedTaskIndexToRead = 0;
+    std::mutex writerMutex;
+  } workerQueue;
+
+  MPSCStaticQueue<Task, 256> mainTaskQueue;
+
+  static constexpr int threadCountMax = 64;
+  static constexpr uint8 invalidTaskIndex = 255;
+
+  std::vector<void*> threads;
+  std::vector<TaskThreadContext> threadContexts;
+
+  void* parallelForFinishedEvent;
+
+  volatile bool threadsShouldStop = false;
+
+private:
+
+  static unsigned long workerThreadMain(void* parameter);
+
+  bool isInitialized() const;
+
+  void processAllTasks(const TaskThreadContext& threadContext);
+};
+TaskManager taskManager;
+
+TaskSystemInitializer::TaskSystemInitializer() { taskManager.initialize(); }
+TaskSystemInitializer::~TaskSystemInitializer() { taskManager.deinitialize(); }
+
+Ref<TaskEvent> schedule(TaskFunction task, void* taskData, ThreadType desiredThread)
+{
+  return taskManager.schedule(task, taskData, desiredThread);
+}
+Ref<TaskEvent> schedule(TaskFunction task, void* taskData, ThreadType desiredThread, Ref<TaskEvent>* prerequisites, int8 prerequisiteCount)
+{
+  return taskManager.schedule(task, taskData, desiredThread, prerequisites, prerequisiteCount);
+}
+void parallelFor(int64 beginValue, int64 endValue, const std::function<void(int64 iterationIndex, int64 threadIndex)>& function)
+{
+  taskManager.parallelFor(beginValue, endValue, function);
+}
+int64 getWorkerCount()
+{
+  return taskManager.getWorkerCount();
+}
+void processMainThreadTasks()
+{
+  return taskManager.processMainThreadTasks();
+}
+
 FixedThreadSafePoolAllocator<TaskEvent::SubsequentList::Node, 2048> TaskEvent::SubsequentList::nodeAllocator;
 bool TaskEvent::SubsequentList::tryAdd(Ref<TaskEvent>&& taskEvent)
 {
@@ -154,8 +256,6 @@ void TaskEvent::removePrerequisite()
     taskManager.enqueue(function, data, desiredThread, Ref<TaskEvent>(this));
   }
 }
-
-TaskManager taskManager;
 
 TaskManager::TaskManager()
   : parallelForFinishedEvent(CreateEvent(NULL, true, true, NULL))
@@ -471,7 +571,7 @@ void TaskManager::parallelFor(int64 beginValue, int64 endValue, const std::funct
     }
   }
 }
-void TaskManager::processMainTasks()
+void TaskManager::processMainThreadTasks()
 {
   TRACE_SCOPE();
 

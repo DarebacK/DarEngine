@@ -171,7 +171,7 @@ void Asset::ref()
         break;
     }
 
-    taskManager.schedule(initializeAsset, this, ThreadType::Worker);
+    schedule(initializeAsset, this, ThreadType::Worker);
   }
 }
 

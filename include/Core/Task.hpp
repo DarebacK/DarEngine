@@ -95,96 +95,22 @@ private:
 
   std::atomic<int16> refCount = 0;
   std::atomic<int16> prerequisiteCount = 0;
-
-
 };
 
-// Main class of the task system. User code will mostly interact with this exclusively.
-class TaskManager
+Ref<TaskEvent> schedule(TaskFunction task, void* taskData, ThreadType desiredThread);
+Ref<TaskEvent> schedule(TaskFunction task, void* taskData, ThreadType desiredThread, Ref<TaskEvent>* prerequisites, int8 prerequisiteCount);
+// TODO: shouldn't we pass function by rvalue ref?
+void parallelFor(int64 beginValue, int64 endValue, const std::function<void(int64 iterationIndex, int64 threadIndex)>& function);
+int64 getWorkerCount();
+void processMainThreadTasks();
+
+class TaskSystemInitializer
 {
 public:
-
-  TaskManager();
-  TaskManager(const TaskManager& other) = delete;
-  TaskManager(TaskManager&& other) = delete;
-  ~TaskManager();
-
-  // Initializes with threadCount == max(processorCount - 1, 1);
-  void initialize();
-  void initialize(int threadCount);
-  void deinitialize();
-
-  Ref<TaskEvent> schedule(TaskFunction task, void* taskData, ThreadType desiredThread);
-  Ref<TaskEvent> schedule(TaskFunction task, void* taskData, ThreadType desiredThread, Ref<TaskEvent>* prerequisites, int8 prerequisiteCount);
-
-  // endValue means 1 past end
-  void parallelFor(int64 beginValue, int64 endValue, const std::function<void(int64 iterationIndex, int64 threadIndex)>& function);
-
-  // Process tasks meant for the main thread.
-  void processMainTasks();
-
-  int64 getWorkerCount() { return static_cast<int64>(threads.size()); }
-
-private:
-
-  friend class TaskEvent;
-  // Schedule task that's ready for execution.
-  void enqueue(TaskFunction function, void* data, ThreadType desiredThread, Ref<TaskEvent> completionEvent);
-  void enqueueToMain(TaskFunction task, void* taskData, Ref<TaskEvent>&& completionEvent);
-  void enqueueToWorker(TaskFunction task, void* taskData, Ref<TaskEvent>&& completionEvent);
-
-  struct Task
-  {
-    TaskFunction function;
-    void* data;
-    Ref<TaskEvent> completionEvent;
-  };
-
-  struct TaskQueue
-  {
-    Task tasks[255];
-    void* semaphore = nullptr;
-
-    // Keep those shared variables on separate cache lines to avoid false sharing.
-    alignas(CACHE_LINE_SIZE) std::atomic<int64> taskIndexToRead = 0;
-    volatile int64 cachedTaskIndexToWrite = 0;
-
-    alignas(CACHE_LINE_SIZE) std::atomic<int64> taskIndexToWrite = 0;
-    volatile int64 cachedTaskIndexToRead = 0;
-    std::mutex writerMutex;
-  } workerQueue;
-
-  MPSCStaticQueue<Task, 256> mainTaskQueue;
-
-  static constexpr int threadCountMax = 64;
-  static constexpr uint8 invalidTaskIndex = 255;
-
-  std::vector<void*> threads;
-  std::vector<TaskThreadContext> threadContexts;
-
-  void* parallelForFinishedEvent;
-
-  volatile bool threadsShouldStop = false;
-
-private:
-
-  static unsigned long workerThreadMain(void* parameter);
-
-  bool isInitialized() const;
-
-  void processAllTasks(const TaskThreadContext& threadContext);
-};
-
-extern TaskManager taskManager;
-
-// RAII class for taskManager initialization and deinitialization.
-class TaskManagerGuard
-{
-public:
-  TaskManagerGuard() { taskManager.initialize(); }
-  TaskManagerGuard(const TaskManagerGuard& other) = delete;
-  TaskManagerGuard(TaskManagerGuard&& other) = delete;
-  ~TaskManagerGuard() { taskManager.deinitialize(); }
+  TaskSystemInitializer();
+  TaskSystemInitializer(const TaskSystemInitializer& other) = delete;
+  TaskSystemInitializer(TaskSystemInitializer&& other) = delete;
+  ~TaskSystemInitializer();
 };
 
 #define DEFINE_TASK_BEGIN(taskName, TaskDataType) \
