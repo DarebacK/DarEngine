@@ -99,7 +99,6 @@ private:
 
 Ref<TaskEvent> schedule(TaskFunction task, void* taskData, ThreadType desiredThread);
 Ref<TaskEvent> schedule(TaskFunction task, void* taskData, ThreadType desiredThread, Ref<TaskEvent>* prerequisites, int8 prerequisiteCount);
-// TODO: shouldn't we pass function by rvalue ref?
 void parallelFor(int64 beginValue, int64 endValue, const std::function<void(int64 iterationIndex, int64 threadIndex)>& function);
 int64 getWorkerCount();
 void processMainThreadTasks();

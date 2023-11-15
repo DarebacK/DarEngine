@@ -454,7 +454,7 @@ struct ParallelForTaskData
 {
   std::atomic<int64> currentValue;
   int64 endValue;
-  std::function<void(int64 iterationIndex, int64 threadIndex)> function;
+  const std::function<void(int64 iterationIndex, int64 threadIndex)>& function;
   std::atomic<int64> functionCallsDoneCount;
   std::atomic<int64> threadsRemaining;
   void* finishedEvent;
