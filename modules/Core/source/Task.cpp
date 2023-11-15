@@ -19,7 +19,6 @@ public:
   void initialize(int threadCount);
   void deinitialize();
 
-  // TODO: Move this to a free function, it will be simpler for the callers
   Ref<TaskEvent> schedule(TaskFunction task, void* taskData, ThreadType desiredThread);
   Ref<TaskEvent> schedule(TaskFunction task, void* taskData, ThreadType desiredThread, Ref<TaskEvent>* prerequisites, int8 prerequisiteCount);
 
