@@ -202,7 +202,7 @@ void TaskEvent::complete()
 
   subsequents.complete();
 }
-void TaskEvent::waitForCompletion()
+void TaskEvent::waitForCompletion() const
 {
   if(isComplete())
   {

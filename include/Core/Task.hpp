@@ -36,7 +36,7 @@ public:
 
   void complete();
   bool isComplete() const { return subsequents.isComplete; }
-  void waitForCompletion();
+  void waitForCompletion() const;
 
 private:
 
@@ -91,7 +91,7 @@ private:
   ThreadType desiredThread = ThreadType::Unknown;
 
   // Initialized only when waitForCompletion() was called.
-  std::atomic<void*> waitableEvent = nullptr;
+  mutable std::atomic<void*> waitableEvent = nullptr;
 
   std::atomic<int16> refCount = 0;
   std::atomic<int16> prerequisiteCount = 0;
