@@ -177,7 +177,7 @@ public:
   Property(PixelFormat, pixelFormat, PixelFormat::Invalid)
 
   template<typename PixelFormatValueType>
-  PixelFormatValueType sample(int64 x, int64 y);
+  PixelFormatValueType sample(int64 x, int64 y) const;
 
 private:
 
@@ -185,12 +185,13 @@ private:
 
 ASSET_CLASS_END(Texture2D)
 template<typename PixelFormatValueType>
-PixelFormatValueType Texture2D::sample(int64 x, int64 y)
+PixelFormatValueType Texture2D::sample(int64 x, int64 y) const
 {
   const int64 bytesPerPixel = toPixelSizeInBytes(pixelFormat);
   ensure(sizeof(PixelFormatValueType) == bytesPerPixel);
 
-  return (PixelFormatValueType)cpuData[(y * width + x) * bytesPerPixel];
+  const PixelFormatValueType* cpuDataTyped = (const PixelFormatValueType*)cpuData.data();
+  return cpuDataTyped[y * width + x];
 }
 
 #define FIND_ASSET_INSTANTIATION(name) \
