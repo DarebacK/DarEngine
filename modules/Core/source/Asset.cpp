@@ -8,6 +8,7 @@
 #include "Core/File.hpp"
 #include "Core/String.hpp"
 #include "Core/Config.hpp"
+#include "Core/Math.hpp"
 
 #define FIND_ASSET_IMPLEMENTATION(name) \
   template<> \
@@ -883,21 +884,95 @@ void StaticMesh::initialize(const byte* fileData, int64 fileDataLength)
   ensureTrue(isEqual(getFileExtension(path), L"obj"));
 
   const char* obj = (const char*)fileData;
-  int64 i = 0;
-  while(i < fileDataLength)
+  const char* objEnd = obj + fileDataLength;
+
+  auto seekToNewLine = [&obj, objEnd]() {
+    while(true)
+    {
+      if(obj >= objEnd)
+      {
+        return;
+      }
+      else if(isEndOfLine(*obj))
+      {
+        obj++;
+        // In case of \r\n endings.
+        if(isEndOfLine(*obj))
+        {
+          obj++;
+        }
+
+        return;
+      }
+      else
+      {
+        obj++;
+      }
+    }
+  };
+
+  std::vector<Vec3f> positions;
+  // TODO: get the reserve size from a vertexCount meta property
+  positions.reserve(100000);
+  std::vector<Vec2f> textureCoordinates;
+  textureCoordinates.reserve(100000);
+  while(obj < objEnd)
   {
-    switch(obj[i])
+    switch(*obj)
     {
       case '#':
-        while(obj[++i] != '\n' || obj[++i] != '\r');
         break;
 
-      // TODO: implement obj import
+      case 'v':
+      {
+        if(obj[1] == ' ')
+        {
+          obj += 2;
+
+          Vec3f& position = positions.emplace_back();
+
+          position.x = std::atof(obj);
+          while(*(obj++) != ' ');
+
+          position.y = std::atof(obj);
+          while(*(obj++) != ' ');
+
+          position.z = std::atof(obj);
+        }
+        else if(obj[1] == 't')
+        {
+          obj += 3;
+
+          Vec2f& textureCoordinate = textureCoordinates.emplace_back();
+
+          textureCoordinate.x = std::atof(obj);
+          while(*(obj++) != ' ');
+
+          textureCoordinate.y = std::atof(obj);
+        }
+        else
+        {
+          // other vertex attributes not implemented.
+          ensureNoEntry();
+        }
+
+        break;
+      }
+      
+      
+      case 'f':
+      {
+        // TODO: implement obj import
+        ensureNoEntry();
+
+        break;
+      }
 
       default:
         ensureNoEntry();
-        i++;
         break;
     }
+
+    seekToNewLine();
   }
 }

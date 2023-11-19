@@ -12,6 +12,7 @@ const wchar_t* findSubstring(const wchar_t* string, int64 stringLength, const wc
 const wchar_t* findSubstring(const wchar_t* string, int64 stringLength, const wchar_t* substring);
 const wchar_t* findSubstring(const wchar_t* string, const wchar_t* substring, int64 substringLength);
 const wchar_t* findSubstring(const wchar_t* string, const wchar_t* substring);
+inline bool isEndOfLine(char c) { return c == '\n' || c == '\r'; }
 
 int64 getLengthWithoutTrailingSlashes(const wchar_t* string);
 int64 getLengthUntilFirstSlash(const wchar_t* string);
