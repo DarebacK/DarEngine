@@ -880,5 +880,24 @@ void Texture2D::initialize(const byte* fileData, int64 fileDataLength)
 
 void StaticMesh::initialize(const byte* fileData, int64 fileDataLength)
 {
-  // TODO: implement obj import
+  ensureTrue(isEqual(getFileExtension(path), L"obj"));
+
+  const char* obj = (const char*)fileData;
+  int64 i = 0;
+  while(i < fileDataLength)
+  {
+    switch(obj[i])
+    {
+      case '#':
+        while(obj[++i] != '\n' || obj[++i] != '\r');
+        break;
+
+      // TODO: implement obj import
+
+      default:
+        ensureNoEntry();
+        i++;
+        break;
+    }
+  }
 }
