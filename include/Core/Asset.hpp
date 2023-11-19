@@ -35,7 +35,8 @@ private:
 
 #define ASSET_TYPE_LIST(macro) \
   macro(Config) \
-  macro(Texture2D)
+  macro(Texture2D) \
+  macro(StaticMesh)
 enum class AssetType : uint16
 {
   Unknown = 0,
@@ -193,6 +194,19 @@ PixelFormatValueType Texture2D::sample(int64 x, int64 y) const
   const PixelFormatValueType* cpuDataTyped = (const PixelFormatValueType*)cpuData.data();
   return cpuDataTyped[y * width + x];
 }
+
+ASSET_CLASS_BEGIN(StaticMesh)
+public:
+
+  #define ASSET_META_PROPERTY_LIST(Property) \
+  Property(float, boundsXMin, 0) \
+  Property(float, boundsXMax, 0) \
+  Property(float, boundsYMin, 0) \
+  Property(float, boundsYMax, 0) \
+  Property(float, boundsZMin, 0) \
+  Property(float, boundsZMax, 0)
+
+ASSET_CLASS_END(StaticMesh)
 
 #define FIND_ASSET_INSTANTIATION(name) \
   template<> name* AssetDirectoryRef::findAsset<name>(const wchar_t* path) const;

@@ -263,6 +263,13 @@ bool parseMetaProperty(const AssetMetaPropertyReflection* reflections, int64 ref
           break;
         }
 
+        case AssetMetaPropertyType::Float:
+        {
+          const float value = node.toFloat();
+          *(float*)(((byte*)destination) + reflection.offset) = value;
+          break;
+        }
+
         default:
           ensureNoEntry();
           break;
@@ -354,6 +361,14 @@ void defaultInitialiazeMetaProperties(const AssetMetaPropertyReflection* reflect
             ensureNoEntry();
             break;
         }
+        break;
+      }
+
+      case AssetMetaPropertyType::Float:
+      {
+        // TODO: check that the default value is not doing any rounding
+        const float value = *((float*)&reflection.defaultValue);
+        *(float*)(((byte*)destination) + reflection.offset) = value;
         break;
       }
 
@@ -861,4 +876,9 @@ void Texture2D::initialize(const byte* fileData, int64 fileDataLength)
       return;
     }
   }
+}
+
+void StaticMesh::initialize(const byte* fileData, int64 fileDataLength)
+{
+  // TODO: implement obj import
 }
