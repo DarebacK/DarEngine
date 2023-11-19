@@ -916,6 +916,8 @@ void StaticMesh::initialize(const byte* fileData, int64 fileDataLength)
   positions.reserve(100000);
   std::vector<Vec2f> textureCoordinates;
   textureCoordinates.reserve(100000);
+  std::vector<uint32> indices;
+  indices.reserve(400000);
   while(obj < objEnd)
   {
     switch(*obj)
@@ -959,11 +961,47 @@ void StaticMesh::initialize(const byte* fileData, int64 fileDataLength)
         break;
       }
       
-      
       case 'f':
       {
-        // TODO: implement obj import
-        ensureNoEntry();
+        obj += 1;
+
+        int64 parsedIndices[9];
+        int64 indexCount = 0;
+
+        do
+        {
+          obj++;
+
+          if(isEndOfLine(*obj)) break;
+
+          parsedIndices[indexCount++] = std::atoll(obj);
+          while(true)
+          {
+            ++obj;
+            if(*obj == '/' || *obj == ' ' || isEndOfLine(*obj))
+            {
+              break;
+            }
+          }
+        } while(!isEndOfLine(*obj));
+        
+        ensure(indexCount % 3 == 0);
+        ensure(indexCount <= 6); // not supporting vertex normal indices
+
+        const int64 indicesPerVertices = indexCount / 3;
+        for(int64 i = 0; i < indicesPerVertices; i++)
+        {
+          int64 positionIndex = i * indicesPerVertices;
+          // Not supporting separate texture coordinates from positions
+          for(int64 j = 1; j < indicesPerVertices; j++)
+          {
+            ensure(parsedIndices[positionIndex + j] == parsedIndices[positionIndex]);
+          }
+        }
+
+        indices.emplace_back(parsedIndices[0]);
+        indices.emplace_back(parsedIndices[indicesPerVertices]);
+        indices.emplace_back(parsedIndices[2 * indicesPerVertices]);
 
         break;
       }
