@@ -1013,4 +1013,6 @@ void StaticMesh::initialize(const byte* fileData, int64 fileDataLength)
 
     seekToNewLine();
   }
+
+  // TODO: initialize vertex buffer, keep vertex attributes in seperate streams (more flexibility, maybe better performance)
 }
