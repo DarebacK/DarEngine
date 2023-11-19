@@ -70,3 +70,6 @@ public:
   FileSystemGuard(FileSystemGuard&& other) = delete;
   ~FileSystemGuard() { deinitializeFileSystem(); }
 };
+
+const wchar_t* getFileExtension(const wchar_t* fileName);
+wchar_t* getFileExtension(wchar_t* fileName);

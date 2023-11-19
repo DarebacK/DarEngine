@@ -321,3 +321,29 @@ const wchar_t* findPathRelativeToWorkingDirectory(const wchar_t* absolutePath)
 
   return absolutePath + workingDirectoryLength;
 }
+
+const wchar_t* getFileExtension(const wchar_t* fileName)
+{
+  int32 characterIndex = 0;
+  int32 lastDotIndex = -1;
+  while(fileName[characterIndex] != L'\0')
+  {
+    wchar_t character = fileName[characterIndex];
+    switch(character)
+    {
+      case L'.': lastDotIndex = characterIndex;
+    }
+    characterIndex++;
+  }
+
+  if(lastDotIndex <= 0 || (lastDotIndex == characterIndex - 1))
+  {
+    return nullptr;
+  }
+
+  return fileName + lastDotIndex + 1;
+}
+wchar_t* getFileExtension(wchar_t* fileName)
+{
+  return const_cast<wchar_t*>(getFileExtension(const_cast<const wchar_t*>(fileName)));
+}
