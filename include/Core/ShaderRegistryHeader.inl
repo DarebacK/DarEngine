@@ -18,6 +18,8 @@ namespace D3D11
   #include VERTEX_SHADERS
   #undef VERTEX_SHADER
 
+  // TODO: Investigate using D3DReflect instead of manually specifying input layout
+
   #define PIXEL_SHADER(name) extern CComPtr<ID3D11PixelShader> name ## PixelShader ;
   #include PIXEL_SHADERS
   #undef PIXEL_SHADER
