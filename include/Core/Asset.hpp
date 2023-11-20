@@ -198,6 +198,8 @@ PixelFormatValueType Texture2D::sample(int64 x, int64 y) const
 ASSET_CLASS_BEGIN(StaticMesh)
 public:
 
+  CComPtr<ID3D11Buffer> vertexBuffer;
+
   #define ASSET_META_PROPERTY_LIST(Property) \
   Property(float, boundsXMin, 0) \
   Property(float, boundsXMax, 0) \

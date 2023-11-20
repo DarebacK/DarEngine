@@ -912,107 +912,142 @@ void StaticMesh::initialize(const byte* fileData, int64 fileDataLength)
   };
 
   std::vector<Vec3f> positions;
-  // TODO: get the reserve size from a vertexCount meta property
-  positions.reserve(100000);
   std::vector<Vec2f> textureCoordinates;
-  textureCoordinates.reserve(100000);
   std::vector<uint32> indices;
-  indices.reserve(400000);
-  while(obj < objEnd)
   {
-    switch(*obj)
-    {
-      case '#':
-        break;
-
-      case 'v':
-      {
-        if(obj[1] == ' ')
-        {
-          obj += 2;
-
-          Vec3f& position = positions.emplace_back();
-
-          position.x = std::atof(obj);
-          while(*(obj++) != ' ');
-
-          position.y = std::atof(obj);
-          while(*(obj++) != ' ');
-
-          position.z = std::atof(obj);
-        }
-        else if(obj[1] == 't')
-        {
-          obj += 3;
-
-          Vec2f& textureCoordinate = textureCoordinates.emplace_back();
-
-          textureCoordinate.x = std::atof(obj);
-          while(*(obj++) != ' ');
-
-          textureCoordinate.y = std::atof(obj);
-        }
-        else
-        {
-          // other vertex attributes not implemented.
-          ensureNoEntry();
-        }
-
-        break;
-      }
-      
-      case 'f':
-      {
-        obj += 1;
-
-        int64 parsedIndices[9];
-        int64 indexCount = 0;
-
-        do
-        {
-          obj++;
-
-          if(isEndOfLine(*obj)) break;
-
-          parsedIndices[indexCount++] = std::atoll(obj);
-          while(true)
-          {
-            ++obj;
-            if(*obj == '/' || *obj == ' ' || isEndOfLine(*obj))
-            {
-              break;
-            }
-          }
-        } while(!isEndOfLine(*obj));
-        
-        ensure(indexCount % 3 == 0);
-        ensure(indexCount <= 6); // not supporting vertex normal indices
-
-        const int64 indicesPerVertices = indexCount / 3;
-        for(int64 i = 0; i < indicesPerVertices; i++)
-        {
-          int64 positionIndex = i * indicesPerVertices;
-          // Not supporting separate texture coordinates from positions
-          for(int64 j = 1; j < indicesPerVertices; j++)
-          {
-            ensure(parsedIndices[positionIndex + j] == parsedIndices[positionIndex]);
-          }
-        }
-
-        indices.emplace_back(parsedIndices[0]);
-        indices.emplace_back(parsedIndices[indicesPerVertices]);
-        indices.emplace_back(parsedIndices[2 * indicesPerVertices]);
-
-        break;
-      }
-
-      default:
-        ensureNoEntry();
-        break;
-    }
-
-    seekToNewLine();
+    TRACE_SCOPE("reserveBufferMemory");
+    // TODO: get the reserve size from a vertexCount meta property
+    positions.reserve(100000);
+    textureCoordinates.reserve(100000);
+    indices.reserve(400000);
   }
 
-  // TODO: initialize vertex buffer, keep vertex attributes in seperate streams (more flexibility, maybe better performance)
+  {
+    TRACE_SCOPE("readAndParseObjFile");
+
+    while(obj < objEnd)
+    {
+      switch(*obj)
+      {
+        case '#':
+          break;
+
+        case 'v':
+        {
+          if(obj[1] == ' ')
+          {
+            obj += 2;
+
+            Vec3f& position = positions.emplace_back();
+
+            position.x = std::atof(obj);
+            while(*(obj++) != ' ');
+
+            position.y = std::atof(obj);
+            while(*(obj++) != ' ');
+
+            position.z = std::atof(obj);
+          }
+          else if(obj[1] == 't')
+          {
+            obj += 3;
+
+            Vec2f& textureCoordinate = textureCoordinates.emplace_back();
+
+            textureCoordinate.x = std::atof(obj);
+            while(*(obj++) != ' ');
+
+            textureCoordinate.y = std::atof(obj);
+          }
+          else
+          {
+            // other vertex attributes not implemented.
+            ensureNoEntry();
+          }
+
+          break;
+        }
+
+        case 'f':
+        {
+          obj += 1;
+
+          int64 parsedIndices[9];
+          int64 indexCount = 0;
+
+          do
+          {
+            obj++;
+
+            if(isEndOfLine(*obj)) break;
+
+            parsedIndices[indexCount++] = std::atoll(obj);
+            while(true)
+            {
+              ++obj;
+              if(*obj == '/' || *obj == ' ' || isEndOfLine(*obj))
+              {
+                break;
+              }
+            }
+          } while(!isEndOfLine(*obj));
+
+          ensure(indexCount % 3 == 0);
+          ensure(indexCount <= 6); // not supporting vertex normal indices
+
+          const int64 indicesPerVertices = indexCount / 3;
+          for(int64 i = 0; i < indicesPerVertices; i++)
+          {
+            int64 positionIndex = i * indicesPerVertices;
+            // TODO: support this, we will need it for importing from Blender
+            // Not supporting separate texture coordinates from positions
+            for(int64 j = 1; j < indicesPerVertices; j++)
+            {
+              ensure(parsedIndices[positionIndex + j] == parsedIndices[positionIndex]);
+            }
+          }
+
+          indices.emplace_back(parsedIndices[0]);
+          indices.emplace_back(parsedIndices[indicesPerVertices]);
+          indices.emplace_back(parsedIndices[2 * indicesPerVertices]);
+
+          break;
+        }
+
+        default:
+          ensureNoEntry();
+          break;
+      }
+
+      seekToNewLine();
+    }
+  }
+
+  {
+    TRACE_SCOPE("createVertexBuffer");
+
+    std::vector<byte> vertexBufferData;
+    const uint64 positionsSizeInBytes = positions.size() * sizeof(Vec3f);
+    const uint64 textureCoordinatesSizeInBytes = textureCoordinates.size() * sizeof(Vec2f);
+    const uint64 vertexBufferDataSize = positionsSizeInBytes + textureCoordinatesSizeInBytes;
+    vertexBufferData.resize(vertexBufferDataSize);
+    memcpy(vertexBufferData.data(), positions.data(), positionsSizeInBytes);
+    positions.clear();
+    memcpy(vertexBufferData.data() + positionsSizeInBytes, textureCoordinates.data(), textureCoordinatesSizeInBytes);
+    textureCoordinates.clear();
+
+    D3D11_BUFFER_DESC desc;
+    desc.ByteWidth = vertexBufferDataSize;
+    desc.Usage = D3D11_USAGE_IMMUTABLE;
+    desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+    desc.CPUAccessFlags = 0;
+    desc.MiscFlags = 0;
+
+    D3D11_SUBRESOURCE_DATA bufferData;
+    bufferData.pSysMem = vertexBufferData.data();
+    bufferData.SysMemPitch = 0;
+    bufferData.SysMemSlicePitch = 0;
+
+    ensure(D3D11::device->CreateBuffer(&desc, &bufferData, &vertexBuffer) == S_OK);
+  }
 }
