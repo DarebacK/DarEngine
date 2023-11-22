@@ -30,7 +30,8 @@ public:
 
   AssetDirectoryRef() = default;
   // Increases the ref count of assets in the directory and it's subdirectories, potentially causing their async loading and initialization.
-  AssetDirectoryRef(const wchar_t* path);
+  explicit AssetDirectoryRef(const wchar_t* path);
+  explicit AssetDirectoryRef(AssetDirectory* directory);
   AssetDirectoryRef(const AssetDirectoryRef& other) = delete;
   AssetDirectoryRef(AssetDirectoryRef&& other);
   ~AssetDirectoryRef();

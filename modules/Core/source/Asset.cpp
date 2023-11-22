@@ -445,7 +445,40 @@ void AssetDirectoryRef::forEachAsset(AssetType type, const std::function<void(As
 
 AssetDirectoryRef AssetDirectoryRef::findSubdirectory(const wchar_t* relativePath) const
 {
-  // TODO: implement
+  AssetDirectory* currentDirectory = directory;
+  int64 pathLength;
+  int64 nextDirectoryNameLength;
+  do
+  {
+    pathLength = getLengthWithoutTrailingSlashes(relativePath);
+    nextDirectoryNameLength = getLengthUntilFirstSlash(relativePath);
+
+    bool found = false;
+    for(AssetDirectory& iteratedDirectory : directory->directories)
+    {
+      if(iteratedDirectory.name.size() == nextDirectoryNameLength &&
+        contains(relativePath, iteratedDirectory.name.c_str(), nextDirectoryNameLength))
+      {
+        if(nextDirectoryNameLength == pathLength)
+        {
+          return AssetDirectoryRef(&iteratedDirectory);
+        }
+
+        currentDirectory = &iteratedDirectory;
+        relativePath += nextDirectoryNameLength + 1; // + slash character.
+        found = true;
+        break;
+      }
+    }
+
+    if(!found)
+    {
+      return AssetDirectoryRef((AssetDirectory*)nullptr);
+    }
+
+  } while(nextDirectoryNameLength < pathLength);
+
+  return AssetDirectoryRef(currentDirectory);
 }
 
 static bool tryTraverseDirectory(wchar_t* wildcardPathBuffer, int64 wildcardPathLength, AssetDirectory* parentDirectory, WIN32_FIND_DATA* findData)
@@ -655,6 +688,14 @@ AssetDirectory* findDirectory(const wchar_t* path)
   return nullptr;
 }
 
+AssetDirectoryRef::AssetDirectoryRef(AssetDirectory* inDirectory)
+  : directory(inDirectory)
+{
+  if(ensure(directory))
+  {
+    directory->loadAssetsIncludingSubdirectories();
+  }
+}
 AssetDirectoryRef::AssetDirectoryRef(const wchar_t* path)
 {
   initialize(path);
