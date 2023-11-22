@@ -10,18 +10,6 @@
 #include "Core/Config.hpp"
 #include "Core/Math.hpp"
 
-#define FIND_ASSET_IMPLEMENTATION(name) \
-  template<> \
-  name* AssetDirectoryRef::findAsset<name>(const wchar_t* path) const \
-  { \
-    TRACE_SCOPE() \
-    Asset* asset = internalFindAsset(directory, path); \
-    if(!ensure(asset != nullptr)) return nullptr; \
-    if(!ensure(asset->assetType == AssetType::name)) return nullptr; \
-    return reinterpret_cast<name*>(asset); \
-  }
-ASSET_TYPE_LIST(FIND_ASSET_IMPLEMENTATION)
-
 const char* toString(AssetType type)
 {
 #define ASSET_TYPE_ENUMTOSTRING(name) case AssetType::name: return #name;
@@ -422,6 +410,43 @@ public:
 };
 
 AssetDirectory rootDirectory;
+
+#define FIND_ASSET_IMPLEMENTATION(name) \
+  template<> \
+  name* AssetDirectoryRef::findAsset<name>(const wchar_t* path) const \
+  { \
+    TRACE_SCOPE() \
+    Asset* asset = internalFindAsset(directory, path); \
+    if(!ensure(asset != nullptr)) return nullptr; \
+    if(!ensure(asset->assetType == AssetType::name)) return nullptr; \
+    return reinterpret_cast<name*>(asset); \
+  }
+ASSET_TYPE_LIST(FIND_ASSET_IMPLEMENTATION)
+#define FOREACH_ASSET_IMPLEMENTATION(name) \
+template<> \
+name* AssetDirectoryRef::forEachAsset<name>(const std::function<void(name*)>& function) const \
+{ \
+  TRACE_SCOPE(); \
+  forEachAsset(AssetType::name, [&](Asset* asset){ \
+    function((name*) asset); \
+  }); \
+}
+
+void AssetDirectoryRef::forEachAsset(AssetType type, const std::function<void(Asset*)>& function) const
+{
+  for(Asset* asset : directory->assets)
+  {
+    if(asset->assetType == type)
+    {
+      function(asset);
+    }
+  }
+}
+
+AssetDirectoryRef AssetDirectoryRef::findSubdirectory(const wchar_t* relativePath) const
+{
+  // TODO: implement
+}
 
 static bool tryTraverseDirectory(wchar_t* wildcardPathBuffer, int64 wildcardPathLength, AssetDirectory* parentDirectory, WIN32_FIND_DATA* findData)
 {

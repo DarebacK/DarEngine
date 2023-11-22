@@ -10,6 +10,19 @@
 
 bool tryInitializeAssetSystem();
 
+#define ASSET_TYPE_LIST(macro) \
+  macro(Config) \
+  macro(Texture2D) \
+  macro(StaticMesh)
+enum class AssetType : uint16
+{
+  Unknown = 0,
+  #define ASSET_TYPE_ENUM(name) name,
+  ASSET_TYPE_LIST(ASSET_TYPE_ENUM)
+  #undef ASSET_TYPE_ENUM
+};
+const char* toString(AssetType type);
+
 class AssetDirectory;
 class AssetDirectoryRef
 {
@@ -25,26 +38,19 @@ public:
   void initialize(const wchar_t* path);
 
   // path is relative path from this directory.
-  template<typename AssetType>
-  AssetType* findAsset(const wchar_t* path) const;
+  template<typename AssetClass>
+  AssetClass* findAsset(const wchar_t* path) const;
+
+  template<typename AssetClass>
+  void forEachAsset(const std::function<void(AssetClass*)>& function) const;
+  void forEachAsset(AssetType type, const std::function<void(class Asset*)>& function) const;
+
+  AssetDirectoryRef findSubdirectory(const wchar_t* relativePath) const;
 
 private:
 
   AssetDirectory* directory = nullptr;
 };
-
-#define ASSET_TYPE_LIST(macro) \
-  macro(Config) \
-  macro(Texture2D) \
-  macro(StaticMesh)
-enum class AssetType : uint16
-{
-  Unknown = 0,
-#define ASSET_TYPE_ENUM(name) name,
-  ASSET_TYPE_LIST(ASSET_TYPE_ENUM)
-#undef ASSET_TYPE_ENUM
-};
-const char* toString(AssetType type);
 
 class Asset
 {
@@ -213,3 +219,5 @@ ASSET_CLASS_END(StaticMesh)
 #define FIND_ASSET_INSTANTIATION(name) \
   template<> name* AssetDirectoryRef::findAsset<name>(const wchar_t* path) const;
 ASSET_TYPE_LIST(FIND_ASSET_INSTANTIATION)
+#define FOR_EACH_ASSET_INSTANTIATION(name) \
+  template<> name* AssetDirectoryRef::forEachAsset<name>(const std::function<void(name*)>& function) const;
