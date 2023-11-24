@@ -1090,30 +1090,40 @@ void StaticMesh::initialize(const byte* fileData, int64 fileDataLength)
   }
 
   {
-    TRACE_SCOPE("createVertexBuffer");
-
-    std::vector<byte> vertexBufferData;
-    const uint64 positionsSizeInBytes = positions.size() * sizeof(Vec3f);
-    const uint64 textureCoordinatesSizeInBytes = textureCoordinates.size() * sizeof(Vec2f);
-    const uint64 vertexBufferDataSize = positionsSizeInBytes + textureCoordinatesSizeInBytes;
-    vertexBufferData.resize(vertexBufferDataSize);
-    memcpy(vertexBufferData.data(), positions.data(), positionsSizeInBytes);
-    positions.clear();
-    memcpy(vertexBufferData.data() + positionsSizeInBytes, textureCoordinates.data(), textureCoordinatesSizeInBytes);
-    textureCoordinates.clear();
+    TRACE_SCOPE("createD3dBuffers");
 
     D3D11_BUFFER_DESC desc;
-    desc.ByteWidth = vertexBufferDataSize;
     desc.Usage = D3D11_USAGE_IMMUTABLE;
     desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
     desc.CPUAccessFlags = 0;
     desc.MiscFlags = 0;
 
     D3D11_SUBRESOURCE_DATA bufferData;
-    bufferData.pSysMem = vertexBufferData.data();
     bufferData.SysMemPitch = 0;
     bufferData.SysMemSlicePitch = 0;
 
-    ensure(D3D11::device->CreateBuffer(&desc, &bufferData, &vertexBuffer) == S_OK);
+    if(ensure(positions.size() > 0))
+    {
+      desc.ByteWidth = positions.size() * sizeof(Vec3f);
+      bufferData.pSysMem = positions.data();
+      ensure(D3D11::device->CreateBuffer(&desc, &bufferData, &positionVertexBuffer) == S_OK);
+    }
+
+    if(textureCoordinates.size() > 0)
+    {
+      desc.ByteWidth = textureCoordinates.size() * sizeof(Vec2f);
+      bufferData.pSysMem = textureCoordinates.data();
+      ensure(D3D11::device->CreateBuffer(&desc, &bufferData, &textureCoordinateVertexBuffer) == S_OK);
+    }
+
+    if(indices.size())
+    {
+      desc.ByteWidth = indices.size() * sizeof(uint32);
+      desc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+      bufferData.pSysMem = indices.data();
+      ensure(D3D11::device->CreateBuffer(&desc, &bufferData, &indexBuffer) == S_OK);
+
+      indexCount = indices.size();
+    }
   }
 }
