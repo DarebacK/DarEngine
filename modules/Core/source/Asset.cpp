@@ -991,6 +991,8 @@ void StaticMesh::initialize(const byte* fileData, int64 fileDataLength)
   {
     TRACE_SCOPE("readAndParseObjFile");
 
+    // TODO: there is some corruption compared to blender import, maybe Blender validates the input so maybe try to use ensures to catch invalid data
+
     while(obj < objEnd)
     {
       switch(*obj)
