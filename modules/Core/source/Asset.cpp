@@ -991,8 +991,6 @@ void StaticMesh::initialize(const byte* fileData, int64 fileDataLength)
   {
     TRACE_SCOPE("readAndParseObjFile");
 
-    // TODO: there is some corruption compared to blender import, maybe Blender validates the input so maybe try to use ensures to catch invalid data
-
     while(obj < objEnd)
     {
       switch(*obj)
@@ -1041,7 +1039,7 @@ void StaticMesh::initialize(const byte* fileData, int64 fileDataLength)
           obj += 1;
 
           int64 parsedIndices[9];
-          int64 indexCount = 0;
+          int64 parsedIndexCount = 0;
 
           do
           {
@@ -1049,7 +1047,7 @@ void StaticMesh::initialize(const byte* fileData, int64 fileDataLength)
 
             if(isEndOfLine(*obj)) break;
 
-            parsedIndices[indexCount++] = std::atoll(obj);
+            parsedIndices[parsedIndexCount++] = std::atoll(obj) - 1;
             while(true)
             {
               ++obj;
@@ -1060,10 +1058,10 @@ void StaticMesh::initialize(const byte* fileData, int64 fileDataLength)
             }
           } while(!isEndOfLine(*obj));
 
-          ensure(indexCount % 3 == 0);
-          ensure(indexCount <= 6); // not supporting vertex normal indices
+          ensure(parsedIndexCount % 3 == 0);
+          ensure(parsedIndexCount <= 6); // not supporting vertex normal indices
 
-          const int64 indicesPerVertices = indexCount / 3;
+          const int64 indicesPerVertices = parsedIndexCount / 3;
           for(int64 i = 0; i < indicesPerVertices; i++)
           {
             int64 positionIndex = i * indicesPerVertices;
@@ -1073,6 +1071,20 @@ void StaticMesh::initialize(const byte* fileData, int64 fileDataLength)
             {
               ensure(parsedIndices[positionIndex + j] == parsedIndices[positionIndex]);
             }
+          }
+
+          bool bIsValid = true;
+          for(int64 i = 0; i < parsedIndexCount; ++i)
+          { 
+            if(!ensure(parsedIndices[i] < positions.size() && parsedIndices[i] >= 0))
+            {
+              bIsValid = false;
+              break;
+            }
+          }
+          if(!bIsValid)
+          {
+            break;
           }
 
           indices.emplace_back(parsedIndices[0]);
