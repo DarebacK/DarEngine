@@ -228,3 +228,6 @@ void* findToEnumFunction(const char* enumName);
     return internalToString##name<name>(value); \
   } \
   static EnumRegisterer name##EnumRegisterer{#name, reinterpret_cast<void*>(&to##name)};
+
+// SIMD ********************************************************************************************
+#include <xmmintrin.h>

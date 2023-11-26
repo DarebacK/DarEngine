@@ -321,22 +321,22 @@ struct Mat4x3f
   constexpr static Mat4x3f identity() noexcept
   {
     return
-    { {
-     {1.0f, 0.0f, 0.0f},
-     {0.0f, 1.0f, 0.0f},
-     {0.0f, 0.0f, 1.0f},
-     {0.0f, 0.0f, 0.0f}
-    } };
+    {
+     1.0f, 0.0f, 0.0f,
+     0.0f, 1.0f, 0.0f,
+     0.0f, 0.0f, 1.0f,
+     0.0f, 0.0f, 0.0f
+    };
   }
   constexpr static Mat4x3f translation(float x, float y, float z) noexcept
   {
     return
-    { {
-     {1.0f, 0.0f, 0.0f},
-     {0.0f, 1.0f, 0.0f},
-     {0.0f, 0.0f, 1.0f},
-     {   x,    y,    z}
-    } };
+    {
+     1.0f, 0.0f, 0.0f,
+     0.0f, 1.0f, 0.0f,
+     0.0f, 0.0f, 1.0f,
+        x,    y,    z
+    };
   }
   constexpr static Mat4x3f translation(const Vec3f& by) noexcept
   {
@@ -345,42 +345,42 @@ struct Mat4x3f
   static Mat4x3f rotationX(float radians) noexcept
   {
     return
-    { {
-     {1.f,           0.f,          0.f},
-     {0.f,  cos(radians), sin(radians)},
-     {0.f, -sin(radians), cos(radians)},
-     {0.f,           0.f,          0.f}
-    } };
+    {
+     1.f,           0.f,          0.f,
+     0.f,  cos(radians), sin(radians),
+     0.f, -sin(radians), cos(radians),
+     0.f,           0.f,          0.f
+    };
   }
   static Mat4x3f rotationY(float radians) noexcept
   {
     return
-    { {
-     {cos(radians), 0.f, -sin(radians)},
-     {         0.f, 1.f,           0.f},
-     {sin(radians), 0.f,  cos(radians)},
-     {         0.f, 0.f,           0.f}
-    } };
+    {
+     cos(radians), 0.f, -sin(radians),
+              0.f, 1.f,           0.f,
+     sin(radians), 0.f,  cos(radians),
+              0.f, 0.f,           0.f
+    };
   }
   static Mat4x3f rotationZ(float radians) noexcept
   {
     return
-    { {
-     { cos(radians), sin(radians), 0.f},
-     {-sin(radians), cos(radians), 0.f},
-     {          0.f,          0.f, 1.f},
-     {          0.f,          0.f, 0.f}
-    } };
+    {
+      cos(radians), sin(radians), 0.f,
+     -sin(radians), cos(radians), 0.f,
+               0.f,          0.f, 1.f,
+               0.f,          0.f, 0.f
+    };
   }
-  static Mat4x3f scale(float x, float y, float z) noexcept
+  constexpr static Mat4x3f scale(float x, float y, float z) noexcept
   {
     return
-    { {
-     {   x, 0.f, 0.f},
-     { 0.f,   y, 0.f},
-     { 0.f, 0.f,   z},
-     { 0.f, 0.f, 0.f}
-    } };
+    {
+        x, 0.f, 0.f,
+      0.f,   y, 0.f,
+      0.f, 0.f,   z,
+      0.f, 0.f, 0.f
+    };
   }
   static Mat4x3f lookAt(const Vec3f& eyePosition, const Vec3f& focusPosition, const Vec3f& upDirection) noexcept
   {
@@ -426,22 +426,22 @@ struct Mat4f
   constexpr static Mat4f identity() noexcept
   {
     return 
-    {{
-      {1.0f, 0.0f, 0.0f, 0.0f},
-      {0.0f, 1.0f, 0.0f, 0.0f},
-      {0.0f, 0.0f, 1.0f, 0.0f},
-      {0.0f, 0.0f, 0.0f, 1.0f}
-    }};
+    {
+      1.0f, 0.0f, 0.0f, 0.0f,
+      0.0f, 1.0f, 0.0f, 0.0f,
+      0.0f, 0.0f, 1.0f, 0.0f,
+      0.0f, 0.0f, 0.0f, 1.0f
+    };
   }
   constexpr static Mat4f translation(float x, float y, float z) noexcept
   {
     return 
-    {{
-      {1.0f, 0.0f, 0.0f, 0.0f},
-      {0.0f, 1.0f, 0.0f, 0.0f},
-      {0.0f, 0.0f, 1.0f, 0.0f},
-      {   x,    y,    z, 1.0f}
-    }};
+    {
+      1.0f, 0.0f, 0.0f, 0.0f,
+      0.0f, 1.0f, 0.0f, 0.0f,
+      0.0f, 0.0f, 1.0f, 0.0f,
+         x,    y,    z, 1.0f
+    };
   }
   constexpr static Mat4f translation(const Vec3f& by) noexcept
   {
@@ -449,33 +449,33 @@ struct Mat4f
   }
   static Mat4f rotationX(float radians) noexcept
   {
-    return 
-    {{
-      {1.f,           0.f,          0.f, 0.f},
-      {0.f,  cos(radians), sin(radians), 0.f},
-      {0.f, -sin(radians), cos(radians), 0.f},
-      {0.f,           0.f,          0.f, 1.f}
-    }};
+    return Mat4f
+    {
+      1.f,           0.f,          0.f, 0.f,
+      0.f,  cos(radians), sin(radians), 0.f,
+      0.f, -sin(radians), cos(radians), 0.f,
+      0.f,           0.f,          0.f, 1.f
+    };
   }
   static Mat4f rotationY(float radians) noexcept
   {
     return
-    {{
-      {cos(radians), 0.f, -sin(radians), 0.f},
-      {         0.f, 1.f,           0.f, 0.f},
-      {sin(radians), 0.f,  cos(radians), 0.f},
-      {         0.f, 0.f,           0.f, 1.f}
-    }};
+    {
+      cos(radians), 0.f, -sin(radians), 0.f,
+               0.f, 1.f,           0.f, 0.f,
+      sin(radians), 0.f,  cos(radians), 0.f,
+               0.f, 0.f,           0.f, 1.f
+    };
   }
   static Mat4f rotationZ(float radians) noexcept
   {
     return
-    { {
-      { cos(radians), sin(radians), 0.f, 0.f},
-      {-sin(radians), cos(radians), 0.f, 0.f},
-      {          0.f,          0.f, 1.f, 0.f},
-      {          0.f,          0.f, 0.f, 1.f}
-    } };
+    { 
+      cos(radians), sin(radians), 0.f, 0.f,
+     -sin(radians), cos(radians), 0.f, 0.f,
+               0.f,          0.f, 1.f, 0.f,
+               0.f,          0.f, 0.f, 1.f
+    };
   }
   static Mat4f perspectiveProjectionD3d(
     float verticalFieldOfViewRadians, 
@@ -492,12 +492,12 @@ struct Mat4f
     float width = height / aspectRatio;
     float fRange = farZ / (farZ - nearZ);
     return 
-    {{
-      {width,    0.f,             0.f, 0.f},
-      {  0.f, height,             0.f, 0.f},
-      {  0.f,    0.f,          fRange, 1.f},
-      {  0.f,    0.f, -fRange * nearZ, 0.f}
-    }};
+    {
+      width,    0.f,             0.f, 0.f,
+        0.f, height,             0.f, 0.f,
+        0.f,    0.f,          fRange, 1.f,
+        0.f,    0.f, -fRange * nearZ, 0.f
+    };
   }
   static Mat4f lookAt(const Vec3f& eyePosition, const Vec3f& focusPosition, const Vec3f& upDirection) noexcept
   {
@@ -521,12 +521,12 @@ struct Mat4f
     float d1 = dot(r1, negatedEyePosition);
     float d2 = dot(eyeDirection, negatedEyePosition);
     return
-    {{
-      {r0.x, r1.x, eyeDirection.x, 0.f},
-      {r0.y, r1.y, eyeDirection.y, 0.f},
-      {r0.z, r1.z, eyeDirection.z, 0.f},
-      {  d0,   d1,             d2, 1.f}
-    }};
+    {
+      r0.x, r1.x, eyeDirection.x, 0.f,
+      r0.y, r1.y, eyeDirection.y, 0.f,
+      r0.z, r1.z, eyeDirection.z, 0.f,
+        d0,   d1,             d2, 1.f
+    };
   }
 
   float* operator[](int index) noexcept {return values[index];}
@@ -547,6 +547,134 @@ inline Mat4f toMat4f(const Mat4x3f& m) noexcept
     m[2][0], m[2][1], m[2][2], 0.f,
     m[3][0], m[3][1], m[3][2], 1.f
   };
+}
+inline Mat4f inversed(const Mat4f& m)
+{
+  // TODO: implement
+   
+  // from https://github.com/microsoft/DirectXMath/blob/83634c742a85d1027765af53fbe79506fd72e0c3/Inc/DirectXMathMatrix.inl
+
+  //XMVECTOR vTemp1 = _mm_shuffle_ps(M.r[0], M.r[1], _MM_SHUFFLE(1, 0, 1, 0));
+  //XMVECTOR vTemp3 = _mm_shuffle_ps(M.r[0], M.r[1], _MM_SHUFFLE(3, 2, 3, 2));
+  //XMVECTOR vTemp2 = _mm_shuffle_ps(M.r[2], M.r[3], _MM_SHUFFLE(1, 0, 1, 0));
+  //XMVECTOR vTemp4 = _mm_shuffle_ps(M.r[2], M.r[3], _MM_SHUFFLE(3, 2, 3, 2));
+
+  //XMMATRIX MT;
+  //MT.r[0] = _mm_shuffle_ps(vTemp1, vTemp2, _MM_SHUFFLE(2, 0, 2, 0));
+  //MT.r[1] = _mm_shuffle_ps(vTemp1, vTemp2, _MM_SHUFFLE(3, 1, 3, 1));
+  //MT.r[2] = _mm_shuffle_ps(vTemp3, vTemp4, _MM_SHUFFLE(2, 0, 2, 0));
+  //MT.r[3] = _mm_shuffle_ps(vTemp3, vTemp4, _MM_SHUFFLE(3, 1, 3, 1));
+
+  //XMVECTOR V00 = XM_PERMUTE_PS(MT.r[2], _MM_SHUFFLE(1, 1, 0, 0));
+  //XMVECTOR V10 = XM_PERMUTE_PS(MT.r[3], _MM_SHUFFLE(3, 2, 3, 2));
+  //XMVECTOR V01 = XM_PERMUTE_PS(MT.r[0], _MM_SHUFFLE(1, 1, 0, 0));
+  //XMVECTOR V11 = XM_PERMUTE_PS(MT.r[1], _MM_SHUFFLE(3, 2, 3, 2));
+  //XMVECTOR V02 = _mm_shuffle_ps(MT.r[2], MT.r[0], _MM_SHUFFLE(2, 0, 2, 0));
+  //XMVECTOR V12 = _mm_shuffle_ps(MT.r[3], MT.r[1], _MM_SHUFFLE(3, 1, 3, 1));
+
+  //XMVECTOR D0 = _mm_mul_ps(V00, V10);
+  //XMVECTOR D1 = _mm_mul_ps(V01, V11);
+  //XMVECTOR D2 = _mm_mul_ps(V02, V12);
+
+  //V00 = XM_PERMUTE_PS(MT.r[2], _MM_SHUFFLE(3, 2, 3, 2));
+  //V10 = XM_PERMUTE_PS(MT.r[3], _MM_SHUFFLE(1, 1, 0, 0));
+  //V01 = XM_PERMUTE_PS(MT.r[0], _MM_SHUFFLE(3, 2, 3, 2));
+  //V11 = XM_PERMUTE_PS(MT.r[1], _MM_SHUFFLE(1, 1, 0, 0));
+  //V02 = _mm_shuffle_ps(MT.r[2], MT.r[0], _MM_SHUFFLE(3, 1, 3, 1));
+  //V12 = _mm_shuffle_ps(MT.r[3], MT.r[1], _MM_SHUFFLE(2, 0, 2, 0));
+
+  //D0 = XM_FNMADD_PS(V00, V10, D0);
+  //D1 = XM_FNMADD_PS(V01, V11, D1);
+  //D2 = XM_FNMADD_PS(V02, V12, D2);
+  //// V11 = D0Y,D0W,D2Y,D2Y
+  //V11 = _mm_shuffle_ps(D0, D2, _MM_SHUFFLE(1, 1, 3, 1));
+  //V00 = XM_PERMUTE_PS(MT.r[1], _MM_SHUFFLE(1, 0, 2, 1));
+  //V10 = _mm_shuffle_ps(V11, D0, _MM_SHUFFLE(0, 3, 0, 2));
+  //V01 = XM_PERMUTE_PS(MT.r[0], _MM_SHUFFLE(0, 1, 0, 2));
+  //V11 = _mm_shuffle_ps(V11, D0, _MM_SHUFFLE(2, 1, 2, 1));
+  //// V13 = D1Y,D1W,D2W,D2W
+  //XMVECTOR V13 = _mm_shuffle_ps(D1, D2, _MM_SHUFFLE(3, 3, 3, 1));
+  //V02 = XM_PERMUTE_PS(MT.r[3], _MM_SHUFFLE(1, 0, 2, 1));
+  //V12 = _mm_shuffle_ps(V13, D1, _MM_SHUFFLE(0, 3, 0, 2));
+  //XMVECTOR V03 = XM_PERMUTE_PS(MT.r[2], _MM_SHUFFLE(0, 1, 0, 2));
+  //V13 = _mm_shuffle_ps(V13, D1, _MM_SHUFFLE(2, 1, 2, 1));
+
+  //XMVECTOR C0 = _mm_mul_ps(V00, V10);
+  //XMVECTOR C2 = _mm_mul_ps(V01, V11);
+  //XMVECTOR C4 = _mm_mul_ps(V02, V12);
+  //XMVECTOR C6 = _mm_mul_ps(V03, V13);
+
+  //// V11 = D0X,D0Y,D2X,D2X
+  //V11 = _mm_shuffle_ps(D0, D2, _MM_SHUFFLE(0, 0, 1, 0));
+  //V00 = XM_PERMUTE_PS(MT.r[1], _MM_SHUFFLE(2, 1, 3, 2));
+  //V10 = _mm_shuffle_ps(D0, V11, _MM_SHUFFLE(2, 1, 0, 3));
+  //V01 = XM_PERMUTE_PS(MT.r[0], _MM_SHUFFLE(1, 3, 2, 3));
+  //V11 = _mm_shuffle_ps(D0, V11, _MM_SHUFFLE(0, 2, 1, 2));
+  //// V13 = D1X,D1Y,D2Z,D2Z
+  //V13 = _mm_shuffle_ps(D1, D2, _MM_SHUFFLE(2, 2, 1, 0));
+  //V02 = XM_PERMUTE_PS(MT.r[3], _MM_SHUFFLE(2, 1, 3, 2));
+  //V12 = _mm_shuffle_ps(D1, V13, _MM_SHUFFLE(2, 1, 0, 3));
+  //V03 = XM_PERMUTE_PS(MT.r[2], _MM_SHUFFLE(1, 3, 2, 3));
+  //V13 = _mm_shuffle_ps(D1, V13, _MM_SHUFFLE(0, 2, 1, 2));
+
+  //C0 = XM_FNMADD_PS(V00, V10, C0);
+  //C2 = XM_FNMADD_PS(V01, V11, C2);
+  //C4 = XM_FNMADD_PS(V02, V12, C4);
+  //C6 = XM_FNMADD_PS(V03, V13, C6);
+
+  //V00 = XM_PERMUTE_PS(MT.r[1], _MM_SHUFFLE(0, 3, 0, 3));
+  //// V10 = D0Z,D0Z,D2X,D2Y
+  //V10 = _mm_shuffle_ps(D0, D2, _MM_SHUFFLE(1, 0, 2, 2));
+  //V10 = XM_PERMUTE_PS(V10, _MM_SHUFFLE(0, 2, 3, 0));
+  //V01 = XM_PERMUTE_PS(MT.r[0], _MM_SHUFFLE(2, 0, 3, 1));
+  //// V11 = D0X,D0W,D2X,D2Y
+  //V11 = _mm_shuffle_ps(D0, D2, _MM_SHUFFLE(1, 0, 3, 0));
+  //V11 = XM_PERMUTE_PS(V11, _MM_SHUFFLE(2, 1, 0, 3));
+  //V02 = XM_PERMUTE_PS(MT.r[3], _MM_SHUFFLE(0, 3, 0, 3));
+  //// V12 = D1Z,D1Z,D2Z,D2W
+  //V12 = _mm_shuffle_ps(D1, D2, _MM_SHUFFLE(3, 2, 2, 2));
+  //V12 = XM_PERMUTE_PS(V12, _MM_SHUFFLE(0, 2, 3, 0));
+  //V03 = XM_PERMUTE_PS(MT.r[2], _MM_SHUFFLE(2, 0, 3, 1));
+  //// V13 = D1X,D1W,D2Z,D2W
+  //V13 = _mm_shuffle_ps(D1, D2, _MM_SHUFFLE(3, 2, 3, 0));
+  //V13 = XM_PERMUTE_PS(V13, _MM_SHUFFLE(2, 1, 0, 3));
+
+  //V00 = _mm_mul_ps(V00, V10);
+  //V01 = _mm_mul_ps(V01, V11);
+  //V02 = _mm_mul_ps(V02, V12);
+  //V03 = _mm_mul_ps(V03, V13);
+  //XMVECTOR C1 = _mm_sub_ps(C0, V00);
+  //C0 = _mm_add_ps(C0, V00);
+  //XMVECTOR C3 = _mm_add_ps(C2, V01);
+  //C2 = _mm_sub_ps(C2, V01);
+  //XMVECTOR C5 = _mm_sub_ps(C4, V02);
+  //C4 = _mm_add_ps(C4, V02);
+  //XMVECTOR C7 = _mm_add_ps(C6, V03);
+  //C6 = _mm_sub_ps(C6, V03);
+
+  //C0 = _mm_shuffle_ps(C0, C1, _MM_SHUFFLE(3, 1, 2, 0));
+  //C2 = _mm_shuffle_ps(C2, C3, _MM_SHUFFLE(3, 1, 2, 0));
+  //C4 = _mm_shuffle_ps(C4, C5, _MM_SHUFFLE(3, 1, 2, 0));
+  //C6 = _mm_shuffle_ps(C6, C7, _MM_SHUFFLE(3, 1, 2, 0));
+  //C0 = XM_PERMUTE_PS(C0, _MM_SHUFFLE(3, 1, 2, 0));
+  //C2 = XM_PERMUTE_PS(C2, _MM_SHUFFLE(3, 1, 2, 0));
+  //C4 = XM_PERMUTE_PS(C4, _MM_SHUFFLE(3, 1, 2, 0));
+  //C6 = XM_PERMUTE_PS(C6, _MM_SHUFFLE(3, 1, 2, 0));
+  //// Get the determinant
+  //XMVECTOR vTemp = XMVector4Dot(C0, MT.r[0]);
+  //if(pDeterminant != nullptr)
+  //  *pDeterminant = vTemp;
+  //vTemp = _mm_div_ps(g_XMOne, vTemp);
+  //XMMATRIX mResult;
+  //mResult.r[0] = _mm_mul_ps(C0, vTemp);
+  //mResult.r[1] = _mm_mul_ps(C2, vTemp);
+  //mResult.r[2] = _mm_mul_ps(C4, vTemp);
+  //mResult.r[3] = _mm_mul_ps(C6, vTemp);
+  //return mResult;
+
+  // TODO: remove after implementation
+  ensureNoEntry();
+  return {};
 }
 
 inline float verticalToHorizontalFieldOfView(float verticalRadians, float aspectRatio) noexcept
@@ -580,12 +708,12 @@ struct Quatf
     float zz = v.z * v.z;
     float zs = v.z * s;
     return
-    {{
-      {1 - 2*yy - 2*zz, 2*xy + 2*zs    , 2*xz - 2*ys    , 0.f},
-      {2*xy - 2*zs    , 1 - 2*xx - 2*zz, 2*yz + 2*xs    , 0.f},
-      {2*xz + 2*ys    , 2*yz - 2*xs    , 1 - 2*xx - 2*yy, 0.f},
-      {0.f            , 0.f            , 0.f            , 1.f}
-    }};
+    {
+      1 - 2*yy - 2*zz, 2*xy + 2*zs    , 2*xz - 2*ys    , 0.f,
+      2*xy - 2*zs    , 1 - 2*xx - 2*zz, 2*yz + 2*xs    , 0.f,
+      2*xz + 2*ys    , 2*yz - 2*xs    , 1 - 2*xx - 2*yy, 0.f,
+      0.f            , 0.f            , 0.f            , 1.f
+    };
   }
 };
 /**
