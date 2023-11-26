@@ -127,6 +127,18 @@ constexpr inline Vec4f operator*(const Vec4f& left, float right) noexcept
 {
   return right * left;
 }
+constexpr inline Vec4f operator/(const Vec4f& left, float right)
+{
+  return Vec4f{ left.x / right, left.y / right, left.z / right, left.w / right };
+}
+constexpr inline Vec4f& operator/=(Vec4f& left, float right)
+{
+  left.x /= right;
+  left.y /= right;
+  left.z /= right; 
+  left.w /= right;
+  return left;
+};
 constexpr inline bool operator==(const Vec4f& left, const Vec4f& right) noexcept
 {
   return left.x == right.x && left.y == right.y && left.z == right.z && left.w == right.w;
