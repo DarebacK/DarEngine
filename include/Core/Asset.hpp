@@ -106,7 +106,7 @@ struct AssetMetaPropertyReflection
 {
   const char* name = nullptr;
   const char* typeName = nullptr;
-  uint64 defaultValue = 0;
+  uint64 defaultValue = 0; // TODO: we should probably use union as for example float might get rounded due to the cast below
   uint8 size = 0;
   uint8 offset = 0;
   AssetMetaPropertyType type;
