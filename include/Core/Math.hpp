@@ -180,6 +180,7 @@ struct Vec3i
   int x, y, z;
 };
 constexpr inline Vec3f toVec3f(const Vec3i& v) noexcept { return { float(v.x), float(v.y), float(v.z) }; }
+constexpr inline Vec3f toVec3f(const Vec4f& v) { return { v.x, v.y, v.z }; }
 constexpr inline Vec4f toVec4f(const Vec3i& v, float w) { return { float(v.x), float(v.y), float(v.z), w }; }
 inline Vec3i toVec3iRounded(const Vec3f& v) noexcept { return { int(std::round(v.x)), int(std::round(v.y)), int(std::round(v.z)) }; }
 inline Vec3i toVec3iRounded(const Vec4f& v) noexcept { return { int(std::round(v.x)), int(std::round(v.y)), int(std::round(v.z)) }; }
@@ -865,4 +866,22 @@ private:
   float radius;
   float radiusMin;
   float radiusMax;
+};
+
+// TODO: make a version which doesn't check near and far as it's useless in Primus case.
+class ViewFrustum
+{
+public:
+  ViewFrustum() = default;
+  explicit ViewFrustum(const Mat4f& viewProjection);
+
+  void set(const Mat4f& viewProjection);
+
+  bool isPointInside(const Vec3f& point) const;
+  bool isAabbInside(float xMin, float yMin, float zMin, float xMax, float yMax, float zMax) const;
+
+private:
+
+  // x,y,z is the plane normal vector towards inside the frustum, w is the normalized plane constant.
+  Vec4f planes[6];
 };
