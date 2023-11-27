@@ -185,11 +185,11 @@ Mat4f operator*(const Mat4f& left, const Mat4f& right) noexcept
   };
 }
 
-ViewFrustum::ViewFrustum(const Mat4f & viewProjection)
+SimpleViewFrustum::SimpleViewFrustum(const Mat4f & viewProjection)
 {
   set(viewProjection);
 }
-void ViewFrustum::set(const Mat4f& viewProjection)
+void SimpleViewFrustum::set(const Mat4f& viewProjection)
 {
   // For the math explanation see https://www.braynzarsoft.net/viewtutorial/q16390-34-aabb-cpu-side-frustum-culling, 
   // https://www.rastertek.com/dx11win10tut23.html and https://www.flipcode.com/archives/Frustum_Culling.shtml
@@ -230,22 +230,22 @@ void ViewFrustum::set(const Mat4f& viewProjection)
   // Near Frustum Plane
   // We could add the third column to the fourth column to get the near plane,
   // but we don't have to do this because the third column IS the near plane
-  planes[4].x = viewProjection[0][2];
-  planes[4].y = viewProjection[1][2];
-  planes[4].z = viewProjection[2][2];
-  planes[4].w = viewProjection[3][2];
-  planeNormalLength = length(Vec3f(planes[4].x, planes[4].y, planes[4].z));
-  planes[4] /= planeNormalLength;
+  //planes[4].x = viewProjection[0][2];
+  //planes[4].y = viewProjection[1][2];
+  //planes[4].z = viewProjection[2][2];
+  //planes[4].w = viewProjection[3][2];
+  //planeNormalLength = length(Vec3f(planes[4].x, planes[4].y, planes[4].z));
+  //planes[4] /= planeNormalLength;
 
   // Far Frustum Plane
-  planes[5].x = viewProjection[0][3] - viewProjection[0][2];
-  planes[5].y = viewProjection[1][3] - viewProjection[1][2];
-  planes[5].z = viewProjection[2][3] - viewProjection[2][2];
-  planes[5].w = viewProjection[3][3] - viewProjection[3][2];
-  planeNormalLength = length(Vec3f(planes[5].x, planes[5].y, planes[5].z));
-  planes[5] /= planeNormalLength;
+  //planes[5].x = viewProjection[0][3] - viewProjection[0][2];
+  //planes[5].y = viewProjection[1][3] - viewProjection[1][2];
+  //planes[5].z = viewProjection[2][3] - viewProjection[2][2];
+  //planes[5].w = viewProjection[3][3] - viewProjection[3][2];
+  //planeNormalLength = length(Vec3f(planes[5].x, planes[5].y, planes[5].z));
+  //planes[5] /= planeNormalLength;
 }
-bool ViewFrustum::isPointInside(const Vec3f& point) const
+bool SimpleViewFrustum::isPointInside(const Vec3f& point) const
 {
   // TODO: vectorize
 
@@ -260,7 +260,7 @@ bool ViewFrustum::isPointInside(const Vec3f& point) const
 
   return true;
 }
-bool ViewFrustum::isAabbInside(float xMin, float yMin, float zMin, float xMax, float yMax, float zMax) const
+bool SimpleViewFrustum::isAabbInside(float xMin, float yMin, float zMin, float xMax, float yMax, float zMax) const
 {
   // TODO: vectorize
 

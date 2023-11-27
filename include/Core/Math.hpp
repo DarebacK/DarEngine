@@ -868,12 +868,12 @@ private:
   float radiusMax;
 };
 
-// TODO: make a version which doesn't check near and far as it's useless in Primus case.
-class ViewFrustum
+// View frustum without near and far planes as they are not always necessary.
+class SimpleViewFrustum
 {
 public:
-  ViewFrustum() = default;
-  explicit ViewFrustum(const Mat4f& viewProjection);
+  SimpleViewFrustum() = default;
+  explicit SimpleViewFrustum(const Mat4f& viewProjection);
 
   void set(const Mat4f& viewProjection);
 
@@ -883,5 +883,5 @@ public:
 private:
 
   // x,y,z is the plane normal vector towards inside the frustum, w is the normalized plane constant.
-  Vec4f planes[6];
+  Vec4f planes[4];
 };
