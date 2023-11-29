@@ -157,6 +157,17 @@ constexpr inline float dot(const Vec4f& v1, const Vec4f& v2) noexcept
 {
   return (v1.x * v2.x) + (v1.y * v2.y) + (v1.z * v2.z) + (v1.w * v2.w);
 }
+inline __m128 dotSimd(__m128 v1, __m128 v2) noexcept
+{
+  // From https://github.com/microsoft/DirectXMath/blob/83634c742a85d1027765af53fbe79506fd72e0c3/Inc/DirectXMathVector.inl
+  __m128 vTemp2 = v2;
+  __m128 vTemp = _mm_mul_ps(v1, vTemp2);
+  vTemp2 = _mm_shuffle_ps(vTemp2, vTemp, _MM_SHUFFLE(1, 0, 0, 0)); // Copy X to the Z position and Y to the W position
+  vTemp2 = _mm_add_ps(vTemp2, vTemp);          // Add Z = X+Z; W = Y+W;
+  vTemp = _mm_shuffle_ps(vTemp, vTemp2, _MM_SHUFFLE(0, 3, 0, 0));  // Copy W to the Z position
+  vTemp = _mm_add_ps(vTemp, vTemp2);           // Add Z and W together
+  return PERMUTE_PS(vTemp, _MM_SHUFFLE(2, 2, 2, 2));    // Splat Z and return
+}
 
 constexpr inline Vec3f cross(const Vec3f& v1, const Vec3f& v2) noexcept
 {
@@ -533,7 +544,11 @@ struct Mat4f
   float* operator[](int index) noexcept {return values[index];}
   const float* operator[](int index) const noexcept {return values[index];}
 
-  float values[4][4];
+  union
+  {
+    float values[4][4];
+    __m128 vectors[4];
+  };
 };
 Vec4f operator*(const Vec4f& left, const Mat4f& right) noexcept;
 Mat4f operator*(const Mat4x3f& left, const Mat4f& right) noexcept;
@@ -549,133 +564,129 @@ inline Mat4f toMat4f(const Mat4x3f& m) noexcept
     m[3][0], m[3][1], m[3][2], 1.f
   };
 }
-inline Mat4f inversed(const Mat4f& m)
+inline Mat4f inversed(const Mat4f& matrix)
 {
   // TODO: implement
    
   // from https://github.com/microsoft/DirectXMath/blob/83634c742a85d1027765af53fbe79506fd72e0c3/Inc/DirectXMathMatrix.inl
 
-  //XMVECTOR vTemp1 = _mm_shuffle_ps(M.r[0], M.r[1], _MM_SHUFFLE(1, 0, 1, 0));
-  //XMVECTOR vTemp3 = _mm_shuffle_ps(M.r[0], M.r[1], _MM_SHUFFLE(3, 2, 3, 2));
-  //XMVECTOR vTemp2 = _mm_shuffle_ps(M.r[2], M.r[3], _MM_SHUFFLE(1, 0, 1, 0));
-  //XMVECTOR vTemp4 = _mm_shuffle_ps(M.r[2], M.r[3], _MM_SHUFFLE(3, 2, 3, 2));
+  __m128 vTemp1 = _mm_shuffle_ps(matrix.vectors[0], matrix.vectors[1], _MM_SHUFFLE(1, 0, 1, 0));
+  __m128 vTemp3 = _mm_shuffle_ps(matrix.vectors[0], matrix.vectors[1], _MM_SHUFFLE(3, 2, 3, 2));
+  __m128 vTemp2 = _mm_shuffle_ps(matrix.vectors[2], matrix.vectors[3], _MM_SHUFFLE(1, 0, 1, 0));
+  __m128 vTemp4 = _mm_shuffle_ps(matrix.vectors[2], matrix.vectors[3], _MM_SHUFFLE(3, 2, 3, 2));
 
-  //XMMATRIX MT;
-  //MT.r[0] = _mm_shuffle_ps(vTemp1, vTemp2, _MM_SHUFFLE(2, 0, 2, 0));
-  //MT.r[1] = _mm_shuffle_ps(vTemp1, vTemp2, _MM_SHUFFLE(3, 1, 3, 1));
-  //MT.r[2] = _mm_shuffle_ps(vTemp3, vTemp4, _MM_SHUFFLE(2, 0, 2, 0));
-  //MT.r[3] = _mm_shuffle_ps(vTemp3, vTemp4, _MM_SHUFFLE(3, 1, 3, 1));
+  Mat4f MT;
+  MT.vectors[0] = _mm_shuffle_ps(vTemp1, vTemp2, _MM_SHUFFLE(2, 0, 2, 0));
+  MT.vectors[1] = _mm_shuffle_ps(vTemp1, vTemp2, _MM_SHUFFLE(3, 1, 3, 1));
+  MT.vectors[2] = _mm_shuffle_ps(vTemp3, vTemp4, _MM_SHUFFLE(2, 0, 2, 0));
+  MT.vectors[3] = _mm_shuffle_ps(vTemp3, vTemp4, _MM_SHUFFLE(3, 1, 3, 1));
 
-  //XMVECTOR V00 = XM_PERMUTE_PS(MT.r[2], _MM_SHUFFLE(1, 1, 0, 0));
-  //XMVECTOR V10 = XM_PERMUTE_PS(MT.r[3], _MM_SHUFFLE(3, 2, 3, 2));
-  //XMVECTOR V01 = XM_PERMUTE_PS(MT.r[0], _MM_SHUFFLE(1, 1, 0, 0));
-  //XMVECTOR V11 = XM_PERMUTE_PS(MT.r[1], _MM_SHUFFLE(3, 2, 3, 2));
-  //XMVECTOR V02 = _mm_shuffle_ps(MT.r[2], MT.r[0], _MM_SHUFFLE(2, 0, 2, 0));
-  //XMVECTOR V12 = _mm_shuffle_ps(MT.r[3], MT.r[1], _MM_SHUFFLE(3, 1, 3, 1));
+  __m128 V00 = PERMUTE_PS(MT.vectors[2], _MM_SHUFFLE(1, 1, 0, 0));
+  __m128 V10 = PERMUTE_PS(MT.vectors[3], _MM_SHUFFLE(3, 2, 3, 2));
+  __m128 V01 = PERMUTE_PS(MT.vectors[0], _MM_SHUFFLE(1, 1, 0, 0));
+  __m128 V11 = PERMUTE_PS(MT.vectors[1], _MM_SHUFFLE(3, 2, 3, 2));
+  __m128 V02 = _mm_shuffle_ps(MT.vectors[2], MT.vectors[0], _MM_SHUFFLE(2, 0, 2, 0));
+  __m128 V12 = _mm_shuffle_ps(MT.vectors[3], MT.vectors[1], _MM_SHUFFLE(3, 1, 3, 1));
 
-  //XMVECTOR D0 = _mm_mul_ps(V00, V10);
-  //XMVECTOR D1 = _mm_mul_ps(V01, V11);
-  //XMVECTOR D2 = _mm_mul_ps(V02, V12);
+  __m128 D0 = _mm_mul_ps(V00, V10);
+  __m128 D1 = _mm_mul_ps(V01, V11);
+  __m128 D2 = _mm_mul_ps(V02, V12);
 
-  //V00 = XM_PERMUTE_PS(MT.r[2], _MM_SHUFFLE(3, 2, 3, 2));
-  //V10 = XM_PERMUTE_PS(MT.r[3], _MM_SHUFFLE(1, 1, 0, 0));
-  //V01 = XM_PERMUTE_PS(MT.r[0], _MM_SHUFFLE(3, 2, 3, 2));
-  //V11 = XM_PERMUTE_PS(MT.r[1], _MM_SHUFFLE(1, 1, 0, 0));
-  //V02 = _mm_shuffle_ps(MT.r[2], MT.r[0], _MM_SHUFFLE(3, 1, 3, 1));
-  //V12 = _mm_shuffle_ps(MT.r[3], MT.r[1], _MM_SHUFFLE(2, 0, 2, 0));
+  V00 = PERMUTE_PS(MT.vectors[2], _MM_SHUFFLE(3, 2, 3, 2));
+  V10 = PERMUTE_PS(MT.vectors[3], _MM_SHUFFLE(1, 1, 0, 0));
+  V01 = PERMUTE_PS(MT.vectors[0], _MM_SHUFFLE(3, 2, 3, 2));
+  V11 = PERMUTE_PS(MT.vectors[1], _MM_SHUFFLE(1, 1, 0, 0));
+  V02 = _mm_shuffle_ps(MT.vectors[2], MT.vectors[0], _MM_SHUFFLE(3, 1, 3, 1));
+  V12 = _mm_shuffle_ps(MT.vectors[3], MT.vectors[1], _MM_SHUFFLE(2, 0, 2, 0));
 
-  //D0 = XM_FNMADD_PS(V00, V10, D0);
-  //D1 = XM_FNMADD_PS(V01, V11, D1);
-  //D2 = XM_FNMADD_PS(V02, V12, D2);
-  //// V11 = D0Y,D0W,D2Y,D2Y
-  //V11 = _mm_shuffle_ps(D0, D2, _MM_SHUFFLE(1, 1, 3, 1));
-  //V00 = XM_PERMUTE_PS(MT.r[1], _MM_SHUFFLE(1, 0, 2, 1));
-  //V10 = _mm_shuffle_ps(V11, D0, _MM_SHUFFLE(0, 3, 0, 2));
-  //V01 = XM_PERMUTE_PS(MT.r[0], _MM_SHUFFLE(0, 1, 0, 2));
-  //V11 = _mm_shuffle_ps(V11, D0, _MM_SHUFFLE(2, 1, 2, 1));
-  //// V13 = D1Y,D1W,D2W,D2W
-  //XMVECTOR V13 = _mm_shuffle_ps(D1, D2, _MM_SHUFFLE(3, 3, 3, 1));
-  //V02 = XM_PERMUTE_PS(MT.r[3], _MM_SHUFFLE(1, 0, 2, 1));
-  //V12 = _mm_shuffle_ps(V13, D1, _MM_SHUFFLE(0, 3, 0, 2));
-  //XMVECTOR V03 = XM_PERMUTE_PS(MT.r[2], _MM_SHUFFLE(0, 1, 0, 2));
-  //V13 = _mm_shuffle_ps(V13, D1, _MM_SHUFFLE(2, 1, 2, 1));
+  D0 = FNMADD_PS(V00, V10, D0);
+  D1 = FNMADD_PS(V01, V11, D1);
+  D2 = FNMADD_PS(V02, V12, D2);
+  // V11 = D0Y,D0W,D2Y,D2Y
+  V11 = _mm_shuffle_ps(D0, D2, _MM_SHUFFLE(1, 1, 3, 1));
+  V00 = PERMUTE_PS(MT.vectors[1], _MM_SHUFFLE(1, 0, 2, 1));
+  V10 = _mm_shuffle_ps(V11, D0, _MM_SHUFFLE(0, 3, 0, 2));
+  V01 = PERMUTE_PS(MT.vectors[0], _MM_SHUFFLE(0, 1, 0, 2));
+  V11 = _mm_shuffle_ps(V11, D0, _MM_SHUFFLE(2, 1, 2, 1));
+  // V13 = D1Y,D1W,D2W,D2W
+  __m128 V13 = _mm_shuffle_ps(D1, D2, _MM_SHUFFLE(3, 3, 3, 1));
+  V02 = PERMUTE_PS(MT.vectors[3], _MM_SHUFFLE(1, 0, 2, 1));
+  V12 = _mm_shuffle_ps(V13, D1, _MM_SHUFFLE(0, 3, 0, 2));
+  __m128 V03 = PERMUTE_PS(MT.vectors[2], _MM_SHUFFLE(0, 1, 0, 2));
+  V13 = _mm_shuffle_ps(V13, D1, _MM_SHUFFLE(2, 1, 2, 1));
 
-  //XMVECTOR C0 = _mm_mul_ps(V00, V10);
-  //XMVECTOR C2 = _mm_mul_ps(V01, V11);
-  //XMVECTOR C4 = _mm_mul_ps(V02, V12);
-  //XMVECTOR C6 = _mm_mul_ps(V03, V13);
+  __m128 C0 = _mm_mul_ps(V00, V10);
+  __m128 C2 = _mm_mul_ps(V01, V11);
+  __m128 C4 = _mm_mul_ps(V02, V12);
+  __m128 C6 = _mm_mul_ps(V03, V13);
 
-  //// V11 = D0X,D0Y,D2X,D2X
-  //V11 = _mm_shuffle_ps(D0, D2, _MM_SHUFFLE(0, 0, 1, 0));
-  //V00 = XM_PERMUTE_PS(MT.r[1], _MM_SHUFFLE(2, 1, 3, 2));
-  //V10 = _mm_shuffle_ps(D0, V11, _MM_SHUFFLE(2, 1, 0, 3));
-  //V01 = XM_PERMUTE_PS(MT.r[0], _MM_SHUFFLE(1, 3, 2, 3));
-  //V11 = _mm_shuffle_ps(D0, V11, _MM_SHUFFLE(0, 2, 1, 2));
-  //// V13 = D1X,D1Y,D2Z,D2Z
-  //V13 = _mm_shuffle_ps(D1, D2, _MM_SHUFFLE(2, 2, 1, 0));
-  //V02 = XM_PERMUTE_PS(MT.r[3], _MM_SHUFFLE(2, 1, 3, 2));
-  //V12 = _mm_shuffle_ps(D1, V13, _MM_SHUFFLE(2, 1, 0, 3));
-  //V03 = XM_PERMUTE_PS(MT.r[2], _MM_SHUFFLE(1, 3, 2, 3));
-  //V13 = _mm_shuffle_ps(D1, V13, _MM_SHUFFLE(0, 2, 1, 2));
+  // V11 = D0X,D0Y,D2X,D2X
+  V11 = _mm_shuffle_ps(D0, D2, _MM_SHUFFLE(0, 0, 1, 0));
+  V00 = PERMUTE_PS(MT.vectors[1], _MM_SHUFFLE(2, 1, 3, 2));
+  V10 = _mm_shuffle_ps(D0, V11, _MM_SHUFFLE(2, 1, 0, 3));
+  V01 = PERMUTE_PS(MT.vectors[0], _MM_SHUFFLE(1, 3, 2, 3));
+  V11 = _mm_shuffle_ps(D0, V11, _MM_SHUFFLE(0, 2, 1, 2));
+  // V13 = D1X,D1Y,D2Z,D2Z
+  V13 = _mm_shuffle_ps(D1, D2, _MM_SHUFFLE(2, 2, 1, 0));
+  V02 = PERMUTE_PS(MT.vectors[3], _MM_SHUFFLE(2, 1, 3, 2));
+  V12 = _mm_shuffle_ps(D1, V13, _MM_SHUFFLE(2, 1, 0, 3));
+  V03 = PERMUTE_PS(MT.vectors[2], _MM_SHUFFLE(1, 3, 2, 3));
+  V13 = _mm_shuffle_ps(D1, V13, _MM_SHUFFLE(0, 2, 1, 2));
 
-  //C0 = XM_FNMADD_PS(V00, V10, C0);
-  //C2 = XM_FNMADD_PS(V01, V11, C2);
-  //C4 = XM_FNMADD_PS(V02, V12, C4);
-  //C6 = XM_FNMADD_PS(V03, V13, C6);
+  C0 = FNMADD_PS(V00, V10, C0);
+  C2 = FNMADD_PS(V01, V11, C2);
+  C4 = FNMADD_PS(V02, V12, C4);
+  C6 = FNMADD_PS(V03, V13, C6);
 
-  //V00 = XM_PERMUTE_PS(MT.r[1], _MM_SHUFFLE(0, 3, 0, 3));
-  //// V10 = D0Z,D0Z,D2X,D2Y
-  //V10 = _mm_shuffle_ps(D0, D2, _MM_SHUFFLE(1, 0, 2, 2));
-  //V10 = XM_PERMUTE_PS(V10, _MM_SHUFFLE(0, 2, 3, 0));
-  //V01 = XM_PERMUTE_PS(MT.r[0], _MM_SHUFFLE(2, 0, 3, 1));
-  //// V11 = D0X,D0W,D2X,D2Y
-  //V11 = _mm_shuffle_ps(D0, D2, _MM_SHUFFLE(1, 0, 3, 0));
-  //V11 = XM_PERMUTE_PS(V11, _MM_SHUFFLE(2, 1, 0, 3));
-  //V02 = XM_PERMUTE_PS(MT.r[3], _MM_SHUFFLE(0, 3, 0, 3));
-  //// V12 = D1Z,D1Z,D2Z,D2W
-  //V12 = _mm_shuffle_ps(D1, D2, _MM_SHUFFLE(3, 2, 2, 2));
-  //V12 = XM_PERMUTE_PS(V12, _MM_SHUFFLE(0, 2, 3, 0));
-  //V03 = XM_PERMUTE_PS(MT.r[2], _MM_SHUFFLE(2, 0, 3, 1));
-  //// V13 = D1X,D1W,D2Z,D2W
-  //V13 = _mm_shuffle_ps(D1, D2, _MM_SHUFFLE(3, 2, 3, 0));
-  //V13 = XM_PERMUTE_PS(V13, _MM_SHUFFLE(2, 1, 0, 3));
+  V00 = PERMUTE_PS(MT.vectors[1], _MM_SHUFFLE(0, 3, 0, 3));
+  // V10 = D0Z,D0Z,D2X,D2Y
+  V10 = _mm_shuffle_ps(D0, D2, _MM_SHUFFLE(1, 0, 2, 2));
+  V10 = PERMUTE_PS(V10, _MM_SHUFFLE(0, 2, 3, 0));
+  V01 = PERMUTE_PS(MT.vectors[0], _MM_SHUFFLE(2, 0, 3, 1));
+  // V11 = D0X,D0W,D2X,D2Y
+  V11 = _mm_shuffle_ps(D0, D2, _MM_SHUFFLE(1, 0, 3, 0));
+  V11 = PERMUTE_PS(V11, _MM_SHUFFLE(2, 1, 0, 3));
+  V02 = PERMUTE_PS(MT.vectors[3], _MM_SHUFFLE(0, 3, 0, 3));
+  // V12 = D1Z,D1Z,D2Z,D2W
+  V12 = _mm_shuffle_ps(D1, D2, _MM_SHUFFLE(3, 2, 2, 2));
+  V12 = PERMUTE_PS(V12, _MM_SHUFFLE(0, 2, 3, 0));
+  V03 = PERMUTE_PS(MT.vectors[2], _MM_SHUFFLE(2, 0, 3, 1));
+  // V13 = D1X,D1W,D2Z,D2W
+  V13 = _mm_shuffle_ps(D1, D2, _MM_SHUFFLE(3, 2, 3, 0));
+  V13 = PERMUTE_PS(V13, _MM_SHUFFLE(2, 1, 0, 3));
 
-  //V00 = _mm_mul_ps(V00, V10);
-  //V01 = _mm_mul_ps(V01, V11);
-  //V02 = _mm_mul_ps(V02, V12);
-  //V03 = _mm_mul_ps(V03, V13);
-  //XMVECTOR C1 = _mm_sub_ps(C0, V00);
-  //C0 = _mm_add_ps(C0, V00);
-  //XMVECTOR C3 = _mm_add_ps(C2, V01);
-  //C2 = _mm_sub_ps(C2, V01);
-  //XMVECTOR C5 = _mm_sub_ps(C4, V02);
-  //C4 = _mm_add_ps(C4, V02);
-  //XMVECTOR C7 = _mm_add_ps(C6, V03);
-  //C6 = _mm_sub_ps(C6, V03);
+  V00 = _mm_mul_ps(V00, V10);
+  V01 = _mm_mul_ps(V01, V11);
+  V02 = _mm_mul_ps(V02, V12);
+  V03 = _mm_mul_ps(V03, V13);
+  __m128 C1 = _mm_sub_ps(C0, V00);
+  C0 = _mm_add_ps(C0, V00);
+  __m128 C3 = _mm_add_ps(C2, V01);
+  C2 = _mm_sub_ps(C2, V01);
+  __m128 C5 = _mm_sub_ps(C4, V02);
+  C4 = _mm_add_ps(C4, V02);
+  __m128 C7 = _mm_add_ps(C6, V03);
+  C6 = _mm_sub_ps(C6, V03);
 
-  //C0 = _mm_shuffle_ps(C0, C1, _MM_SHUFFLE(3, 1, 2, 0));
-  //C2 = _mm_shuffle_ps(C2, C3, _MM_SHUFFLE(3, 1, 2, 0));
-  //C4 = _mm_shuffle_ps(C4, C5, _MM_SHUFFLE(3, 1, 2, 0));
-  //C6 = _mm_shuffle_ps(C6, C7, _MM_SHUFFLE(3, 1, 2, 0));
-  //C0 = XM_PERMUTE_PS(C0, _MM_SHUFFLE(3, 1, 2, 0));
-  //C2 = XM_PERMUTE_PS(C2, _MM_SHUFFLE(3, 1, 2, 0));
-  //C4 = XM_PERMUTE_PS(C4, _MM_SHUFFLE(3, 1, 2, 0));
-  //C6 = XM_PERMUTE_PS(C6, _MM_SHUFFLE(3, 1, 2, 0));
-  //// Get the determinant
-  //XMVECTOR vTemp = XMVector4Dot(C0, MT.r[0]);
+  C0 = _mm_shuffle_ps(C0, C1, _MM_SHUFFLE(3, 1, 2, 0));
+  C2 = _mm_shuffle_ps(C2, C3, _MM_SHUFFLE(3, 1, 2, 0));
+  C4 = _mm_shuffle_ps(C4, C5, _MM_SHUFFLE(3, 1, 2, 0));
+  C6 = _mm_shuffle_ps(C6, C7, _MM_SHUFFLE(3, 1, 2, 0));
+  C0 = PERMUTE_PS(C0, _MM_SHUFFLE(3, 1, 2, 0));
+  C2 = PERMUTE_PS(C2, _MM_SHUFFLE(3, 1, 2, 0));
+  C4 = PERMUTE_PS(C4, _MM_SHUFFLE(3, 1, 2, 0));
+  C6 = PERMUTE_PS(C6, _MM_SHUFFLE(3, 1, 2, 0));
+  // Get the determinant
+  __m128 vTemp = dotSimd(C0, MT.vectors[0]);
   //if(pDeterminant != nullptr)
   //  *pDeterminant = vTemp;
-  //vTemp = _mm_div_ps(g_XMOne, vTemp);
-  //XMMATRIX mResult;
-  //mResult.r[0] = _mm_mul_ps(C0, vTemp);
-  //mResult.r[1] = _mm_mul_ps(C2, vTemp);
-  //mResult.r[2] = _mm_mul_ps(C4, vTemp);
-  //mResult.r[3] = _mm_mul_ps(C6, vTemp);
-  //return mResult;
-
-  // TODO: remove after implementation
-  ensureNoEntry();
-  return {};
+  vTemp = _mm_div_ps({ 1.0f, 1.0f, 1.0f, 1.0f }, vTemp);
+  Mat4f mResult;
+  mResult.vectors[0] = _mm_mul_ps(C0, vTemp);
+  mResult.vectors[1] = _mm_mul_ps(C2, vTemp);
+  mResult.vectors[2] = _mm_mul_ps(C4, vTemp);
+  mResult.vectors[3] = _mm_mul_ps(C6, vTemp);
+  return mResult;
 }
 
 inline float verticalToHorizontalFieldOfView(float verticalRadians, float aspectRatio) noexcept

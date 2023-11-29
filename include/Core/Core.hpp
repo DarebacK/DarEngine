@@ -231,3 +231,9 @@ void* findToEnumFunction(const char* enumName);
 
 // SIMD ********************************************************************************************
 #include <xmmintrin.h>
+
+// From https://github.com/microsoft/DirectXMath/blob/83634c742a85d1027765af53fbe79506fd72e0c3/Inc/DirectXMath.h
+#define PERMUTE_PS( v, c ) _mm_shuffle_ps((v), (v), c )
+// We don't support the FMA instruction set, so let's just subtitute it by SSE
+#define FMADD_PS( a, b, c ) _mm_add_ps(_mm_mul_ps((a), (b)), (c))
+#define FNMADD_PS( a, b, c ) _mm_sub_ps((c), _mm_mul_ps((a), (b)))
