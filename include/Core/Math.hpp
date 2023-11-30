@@ -59,6 +59,13 @@ struct Vec3f
     z += rhs.z;
     return *this;
   }
+  Vec3f& operator*=(float rhs) noexcept
+  {
+    x *= rhs;
+    y *= rhs;
+    z *= rhs;
+    return *this;
+  }
 
   float x, y, z;
 };
@@ -193,6 +200,7 @@ struct Vec3i
 constexpr inline Vec3f toVec3f(const Vec3i& v) noexcept { return { float(v.x), float(v.y), float(v.z) }; }
 constexpr inline Vec3f toVec3f(const Vec4f& v) { return { v.x, v.y, v.z }; }
 constexpr inline Vec4f toVec4f(const Vec3i& v, float w) { return { float(v.x), float(v.y), float(v.z), w }; }
+constexpr inline Vec4f toVec4f(const Vec3f& v, float w) { return { v.x, v.y, v.z, w }; }
 inline Vec3i toVec3iRounded(const Vec3f& v) noexcept { return { int(std::round(v.x)), int(std::round(v.y)), int(std::round(v.z)) }; }
 inline Vec3i toVec3iRounded(const Vec4f& v) noexcept { return { int(std::round(v.x)), int(std::round(v.y)), int(std::round(v.z)) }; }
 constexpr inline Vec3i operator-(const Vec3i& v) noexcept { return { -v.x, -v.y, -v.z }; }

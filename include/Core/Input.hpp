@@ -33,7 +33,8 @@ struct Keyboard
 struct Input
 {
   Mouse mouse;
-  Vec2i cursorPosition;
+  Vec2i cursorPositionInClientSpace;
+  Vec2f cursorPositionInClientSpaceNormalized;
   Keyboard keyboard;
 
   // Returns true if it was an input message and was processed.
