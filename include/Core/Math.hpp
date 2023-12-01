@@ -904,3 +904,33 @@ private:
   // x,y,z is the plane normal vector towards inside the frustum, w is the normalized plane constant.
   Vec4f planes[4];
 };
+
+inline bool rayIntersectsPlane(const Vec3f& rayPoint, const Vec3f& rayDirection, const Vec3f& planeNormal, float planeConstant, Vec3f& intersection)
+{
+  // from https://stackoverflow.com/a/58819973
+
+  float denominator = dot(planeNormal, rayDirection);
+
+  // Prevent division by zero
+  if(abs(denominator) <= std::numeric_limits<float>::epsilon())
+  {
+    return false;
+  }
+
+  // To ensure the ray reflects off only the "top" half of the plane, use this instead:
+  //
+  // if (-denom <= std::numeric_limits<float>::epsilon())
+  // {
+  //   return false;
+  //}
+
+  float t = -(dot(planeNormal, rayPoint) + planeConstant) / denominator;
+
+  if(t < 0)
+  {
+    return false;
+  }
+
+  intersection = rayPoint + t * rayDirection;
+  return true;
+}
