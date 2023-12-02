@@ -190,6 +190,7 @@ public:
   template<typename PixelFormatValueType>
   PixelFormatValueType sample(int64 x, int64 y) const;
   Vec2i uvToTexel(const Vec2f& uv) const;
+  bool isTexelInside(int64 x, int64 y) const;
 
 private:
 
@@ -199,6 +200,8 @@ ASSET_CLASS_END(Texture2D)
 template<typename PixelFormatValueType>
 PixelFormatValueType Texture2D::sample(int64 x, int64 y) const
 {
+  ensureTrue(isTexelInside(x, y), {});
+
   const int64 bytesPerPixel = toPixelSizeInBytes(pixelFormat);
   ensure(sizeof(PixelFormatValueType) == bytesPerPixel);
 

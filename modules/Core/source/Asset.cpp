@@ -946,7 +946,11 @@ void Texture2D::initialize(const byte* fileData, int64 fileDataLength)
 }
 Vec2i Texture2D::uvToTexel(const Vec2f& uv) const
 {
-  return { int64(std::roundf(uv.x * width)), int64(std::roundf(uv.y * height)) };
+  return { int64(std::roundf(uv.x * (width - 1))), int64(std::roundf(uv.y * (height - 1))) };
+}
+bool Texture2D::isTexelInside(int64 x, int64 y) const
+{
+  return x >= 0 && x < width && y >= 0 && y < height;
 }
 
 void StaticMesh::initialize(const byte* fileData, int64 fileDataLength)
