@@ -944,6 +944,10 @@ void Texture2D::initialize(const byte* fileData, int64 fileDataLength)
     }
   }
 }
+Vec2i Texture2D::uvToTexel(const Vec2f& uv) const
+{
+  return { int64(std::roundf(uv.x * width)), int64(std::roundf(uv.y * height)) };
+}
 
 void StaticMesh::initialize(const byte* fileData, int64 fileDataLength)
 {

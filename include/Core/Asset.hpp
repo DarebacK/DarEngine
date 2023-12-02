@@ -8,6 +8,9 @@
 #include "Core/Image.hpp"
 #include "Core/D3D11.hpp"
 
+struct Vec2f;
+struct Vec2i;
+
 bool tryInitializeAssetSystem();
 
 #define ASSET_TYPE_LIST(macro) \
@@ -186,6 +189,7 @@ public:
 
   template<typename PixelFormatValueType>
   PixelFormatValueType sample(int64 x, int64 y) const;
+  Vec2i uvToTexel(const Vec2f& uv) const;
 
 private:
 

@@ -111,14 +111,14 @@ Vec2i MainWindow::getCursorPosition()
 {
   TRACE_SCOPE();
 
-  Vec2i mousePosition;
-  if (!GetCursorPos((LPPOINT)&mousePosition)) {
+  POINT mousePosition;
+  if (!GetCursorPos(&mousePosition)) {
     return {};
   }
-  if (!ScreenToClient(handle , (LPPOINT)&mousePosition)) {
+  if (!ScreenToClient(handle, &mousePosition)) {
     return {};
   }
-  return mousePosition;
+  return Vec2i{ mousePosition.x, mousePosition.y };
 }
 
 void runGameLoop(std::function<void(int64 frameIndex, float timeDelta)> frameCallback)

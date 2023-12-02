@@ -183,7 +183,7 @@ constexpr inline Vec3f cross(const Vec3f& v1, const Vec3f& v2) noexcept
 
 struct Vec2i
 {
-  int x, y;
+  int64 x, y;
 };
 struct Vec3i
 {
@@ -195,7 +195,7 @@ struct Vec3i
     return *this;
   }
 
-  int x, y, z;
+  int64 x, y, z;
 };
 constexpr inline Vec3f toVec3f(const Vec3i& v) noexcept { return { float(v.x), float(v.y), float(v.z) }; }
 constexpr inline Vec3f toVec3f(const Vec4f& v) { return { v.x, v.y, v.z }; }
