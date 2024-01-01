@@ -574,8 +574,6 @@ inline Mat4f toMat4f(const Mat4x3f& m) noexcept
 }
 inline Mat4f inversed(const Mat4f& matrix)
 {
-  // TODO: implement
-   
   // from https://github.com/microsoft/DirectXMath/blob/83634c742a85d1027765af53fbe79506fd72e0c3/Inc/DirectXMathMatrix.inl
 
   __m128 vTemp1 = _mm_shuffle_ps(matrix.vectors[0], matrix.vectors[1], _MM_SHUFFLE(1, 0, 1, 0));
